@@ -1,0 +1,119 @@
+# Infraestructura de desarrollo. Ejecutar SIEMPRE desde la raíz del repositorio:
+#   docker compose --env-file .env -f infra/docker-compose.yml up -d --build
+# (--env-file es necesario porque el .env vive en la raíz, no junto a este archivo).
+#
+# Los clientes (web Angular / mobile Flutter) todavía no forman parte de este compose:
+# aquí solo está el backend. El servicio "nginx" ya deja preparado el proxy inverso
+# (/api, /graphql y /ws) y servirá la SPA cuando exista web/dist.
+
+name: diagramas
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-diagramas}
+      POSTGRES_USER: ${DB_USER:-diagramas}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD es obligatorio, defínelo en el .env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-diagramas} -d ${DB_NAME:-diagramas}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBIT_USER:-diagramas}
+      RABBITMQ_DEFAULT_PASS: ${RABBIT_PASSWORD:?RABBIT_PASSWORD es obligatorio, defínelo en el .env}
+    volumes:
+      # Habilita el plugin STOMP (puerto 61613) que usa el broker relay del backend.
+      - ./rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro
+    ports:
+      - "127.0.0.1:61613:61613"  # STOMP
+      - "127.0.0.1:15672:15672"  # consola de administración
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  ai-service:
+    build:
+      context: ../ai-service
+    env_file: ../.env
+    # NO se publica ningún puerto: solo es accesible desde la red interna de Docker.
+    expose:
+      - "8000"
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ../backend
+    env_file: ../.env
+    environment:
+      # Dentro de Docker los hosts son los nombres de servicio, no localhost.
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-diagramas}
+      REDIS_HOST: redis
+      RABBIT_HOST: rabbitmq
+      AI_SERVICE_URL: http://ai-service:8000
+      COLLAB_DISTRIBUTED: "true"
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      STORAGE_LOCAL_DIR: /app/data/storage
+    volumes:
+      - backend-storage:/app/data/storage
+      # Credenciales FCM: monta el archivo solo si FCM_CREDENTIALS_PATH apunta a /run/secrets/fcm.json
+      # - ../secrets/fcm.json:/run/secrets/fcm.json:ro
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      # La SPA de Angular se montará aquí cuando exista (web/dist/<app>/browser).
+      - ./nginx/html:/usr/share/nginx/html:ro
+    ports:
+      - "8081:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  backend-storage:
