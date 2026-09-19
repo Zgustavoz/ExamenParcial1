@@ -1,0 +1,23 @@
+# Secretos y datos locales
+.env
+*.pem
+fcm.json
+secrets/
+
+# Backend (Maven / Spring)
+backend/target/
+backend/data/
+*.class
+
+# ai-service (Python)
+ai-service/.venv/
+**/__pycache__/
+.pytest_cache/
+*.pyc
+
+# IDE / SO
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
