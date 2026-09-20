@@ -18,7 +18,8 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     ports:
-      - "127.0.0.1:5432:5432"
+      # Puertos del host desplazados para no chocar con otros PostgreSQL/Redis de la máquina.
+      - "127.0.0.1:${DB_PORT:-15432}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-diagramas} -d ${DB_NAME:-diagramas}"]
       interval: 10s
@@ -30,7 +31,7 @@ services:
     image: redis:7-alpine
     command: ["redis-server", "--save", "", "--appendonly", "no"]
     ports:
-      - "127.0.0.1:6379:6379"
+      - "127.0.0.1:${REDIS_PORT:-16379}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -74,6 +75,7 @@ services:
       # Dentro de Docker los hosts son los nombres de servicio, no localhost.
       DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-diagramas}
       REDIS_HOST: redis
+      REDIS_PORT: "6379"   # dentro de la red de Docker es el puerto estándar
       RABBIT_HOST: rabbitmq
       AI_SERVICE_URL: http://ai-service:8000
       COLLAB_DISTRIBUTED: "true"

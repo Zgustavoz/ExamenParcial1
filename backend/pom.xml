@@ -69,10 +69,14 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
-        <!-- Necesario para el STOMP broker relay hacia RabbitMQ -->
+        <!--
+          Necesario para el STOMP broker relay hacia RabbitMQ. Spring detecta Reactor Netty por la
+          presencia de reactor.netty.http.client.HttpClient, que vive en reactor-netty-http: con solo
+          reactor-netty-core el relay falla al arrancar con "No compatible version of Reactor Netty".
+        -->
         <dependency>
             <groupId>io.projectreactor.netty</groupId>
-            <artifactId>reactor-netty-core</artifactId>
+            <artifactId>reactor-netty-http</artifactId>
         </dependency>
 
         <dependency>
@@ -147,6 +151,11 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>rabbitmq</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

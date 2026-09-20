@@ -88,7 +88,22 @@ marcarla `FAILED`) va en su propia transacción. Si la generación falla, la tar
 envío FCM para **después del commit**, de forma asíncrona. Así nunca se notifica algo que acabó en rollback,
 y un fallo de FCM no rompe el flujo principal (CU-19 lo exige explícitamente).
 
-### D-24 — La suite de Maven ejecuta también las clases `*IT`
+### D-24 — El broker relay necesita `reactor-netty-http`, no solo `-core`
+
+Spring decide si hay una versión compatible de Reactor Netty comprobando la presencia de
+`reactor.netty.http.client.HttpClient`, que vive en `reactor-netty-http`. Con solo `reactor-netty-core`
+el contexto arranca en modo local pero **falla al arrancar** con `COLLAB_DISTRIBUTED=true`
+(«No compatible version of Reactor Netty»). Como el resto de la suite usa la implementación local, se
+agregó `DistributedCollabIT`, que levanta Redis y RabbitMQ reales y ejercita el relay de extremo a extremo.
+
+### D-25 — Los puertos publicados por Compose están desplazados
+
+PostgreSQL se publica en `15432` y Redis en `16379` (configurables con `DB_PORT` y `REDIS_PORT`), no en
+sus puertos estándar. Es habitual tener ya otro PostgreSQL o Redis corriendo en la máquina de desarrollo,
+y el arranque fallaba con un conflicto de puertos. Dentro de la red de Docker los servicios siguen usando
+los puertos estándar.
+
+### D-26 — La suite de Maven ejecuta también las clases `*IT`
 
 Surefire solo recoge `*Test` por defecto. Se configuró para incluir `*IT`, de modo que `mvn test` ejecute
 toda la suite de una vez. Es lo más simple mientras no exista un pipeline que separe fases.

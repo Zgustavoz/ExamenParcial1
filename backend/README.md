@@ -87,7 +87,11 @@ y un `ai-service` simulado en memoria; nunca se llama a un LLM). Cada prueba de 
 | CP-06 diagrama incompleto | `CodegenIT` |
 | CP-07 round-trip XMI | `XmiAdapterTest` |
 | CP-08 sincronización offline | control optimista: `DesignIT` (el cliente móvil queda fuera de este servicio) |
-| CP-09 colaboración en vivo | `CollabStompIT` |
+| CP-09 colaboración en vivo | `CollabStompIT` (modo local) y `DistributedCollabIT` (Redis + RabbitMQ reales) |
+
+`DistributedCollabIT` levanta Redis y RabbitMQ con Testcontainers y arranca el backend con
+`COLLAB_DISTRIBUTED=true`. Es la única prueba que ejercita el broker relay, así que cubre los fallos que
+solo aparecen en el modo de producción (por ejemplo, un arranque roto del relay).
 
 Además: aislamiento multi-tenant, autorización por rol de cada CU, `VERSION_CONFLICT`, `ELEMENT_LOCKED`,
 XXE en la importación XMI y zip-slip en la descarga.

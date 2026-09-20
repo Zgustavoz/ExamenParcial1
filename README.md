@@ -39,6 +39,7 @@ docker compose --env-file .env -f infra/docker-compose.yml up -d --build
 | Servicio | URL | Notas |
 |---|---|---|
 | Backend | http://localhost:8080 | REST, GraphQL y WebSocket |
+| PostgreSQL | localhost:15432 | puerto desplazado para no chocar con otro PostgreSQL local |
 | Nginx | http://localhost:8081 | proxy de `/api`, `/graphql` y `/ws`; servirá la SPA |
 | RabbitMQ | http://localhost:15672 | consola de administración |
 | ai-service | — | **no** se publica: solo accesible desde la red interna |
