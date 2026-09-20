@@ -62,6 +62,20 @@ LLM_API_KEY=...           # tu clave de OpenAI
 LLM_MODEL=...             # el nombre del modelo a usar
 ```
 
+Para usar **Gemini** (clave gratuita de [Google AI Studio](https://aistudio.google.com/apikey), empieza por
+`AIza`). `LLM_PROVIDER` se queda en `openai` porque ese valor significa «cliente compatible con la API de
+OpenAI», no «usar OpenAI»; lo que cambia es la URL base:
+
+```
+LLM_PROVIDER=openai
+LLM_API_KEY=AIza...
+LLM_MODEL=...                 # un nombre de modelo Gemini válido para tu cuenta
+LLM_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai
+```
+
+Si el endpoint de Gemini rechaza el parámetro `response_format`, el `ai-service` lo detecta (HTTP 400) y
+reintenta sin él automáticamente; no hay que configurar nada.
+
 Para usar un LLM local (Ollama, LM Studio…) en vez de OpenAI:
 
 ```

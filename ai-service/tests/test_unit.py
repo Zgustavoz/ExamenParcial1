@@ -132,3 +132,54 @@ def test_sin_modelo_configurado_no_se_llama_al_proveedor():
     with pytest.raises(LlmUnavailable):
         provider.complete("s", [])
     assert llamado is False
+
+
+# ---------------------------------------------------------------- proveedores que rechazan response_format
+
+
+def test_si_el_proveedor_rechaza_response_format_reintenta_sin_el():
+    cuerpos = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        import json as _json
+
+        body = _json.loads(request.content)
+        cuerpos.append(body)
+        if "response_format" in body:
+            return httpx.Response(400, json={"error": "response_format no soportado"})
+        return httpx.Response(200, json={"choices": [{"message": {"content": "{}"}}]})
+
+    provider = _provider(handler, json_mode=True)
+
+    assert provider.complete("s", [{"role": "user", "content": "hola"}]) == "{}"
+    assert len(cuerpos) == 2
+    assert "response_format" in cuerpos[0] and "response_format" not in cuerpos[1]
+
+
+def test_recuerda_que_no_hay_modo_json_y_no_vuelve_a_intentarlo():
+    llamadas = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        import json as _json
+
+        body = _json.loads(request.content)
+        llamadas.append("response_format" in body)
+        if "response_format" in body:
+            return httpx.Response(400)
+        return httpx.Response(200, json={"choices": [{"message": {"content": "{}"}}]})
+
+    provider = _provider(handler, json_mode=True)
+    provider.complete("s", [])
+    provider.complete("s", [])
+
+    assert llamadas == [True, False, False]  # la segunda llamada ya no envía response_format
+
+
+def test_un_400_sin_modo_json_es_servicio_no_disponible():
+    with pytest.raises(LlmUnavailable):
+        _provider(lambda r: httpx.Response(400), json_mode=False).complete("s", [])
+
+
+def test_un_404_de_modelo_inexistente_es_servicio_no_disponible():
+    with pytest.raises(LlmUnavailable):
+        _provider(lambda r: httpx.Response(404, json={"error": "modelo no encontrado"})).complete("s", [])
