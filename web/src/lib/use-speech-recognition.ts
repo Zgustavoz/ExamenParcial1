@@ -29,9 +29,13 @@ export function useSpeechRecognition(onTranscript: (text: string) => void) {
   const [listening, setListening] = useState(false)
   const recognition = useRef<SpeechRecognitionLike | null>(null)
   const callback = useRef(onTranscript)
-  callback.current = onTranscript
 
   const supported = speechRecognitionClass() !== null
+
+  // La referencia guarda siempre la última función, para que `start` no dependa de ella y no se recree.
+  useEffect(() => {
+    callback.current = onTranscript
+  }, [onTranscript])
 
   useEffect(() => {
     return () => recognition.current?.stop()
