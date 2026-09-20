@@ -41,6 +41,21 @@ Usuarios de prueba (contraseña = `SEED_ADMIN_PASSWORD` del `.env`): `platform/a
 | `npm test` | ejecuta las pruebas una vez (`npm run test:watch` para modo interactivo) |
 | `npm run lint` | oxlint |
 
+## Casos de uso cubiertos
+
+| Pantalla | Casos de uso |
+|---|---|
+| `pages/auth` | CU-01 iniciar sesión |
+| `pages/admin` | CU-02 empresas y su primer administrador |
+| `pages/company` | CU-03 usuarios de la empresa |
+| `pages/projects` | CU-04 y CU-05 proyectos · CU-06 crear diagrama · CU-16 importar XMI |
+| `pages/diagrams/editor` | CU-07 … CU-10 edición · CU-12 y CU-13 asistente · CU-16 exportar · CU-17 colaboración · CU-20 secuencia |
+| `pages/diagrams` | CU-11 visor · CU-14 y CU-15 código |
+| `pages/notifications` | CU-19 notificaciones |
+
+CU-18 (modo offline) es obligatorio solo en el móvil; en web es opcional (D-11) y no se implementó.
+El estado detallado está en [docs/PLAN_WEB.md](../docs/PLAN_WEB.md).
+
 ## Estructura
 
 ```
@@ -48,15 +63,26 @@ src/
 ├─ app/routes.tsx        mapa de rutas y roles permitidos por ruta
 ├─ auth/guards.tsx       RequireAuth, RequireRole, RedirectIfAuthenticated, HomeRedirect
 ├─ stores/auth-store.ts  sesión (JWT + usuario) en Zustand, persistida en localStorage
+├─ components/
+│  ├─ diagram/           lienzo React Flow: nodo de clase, aristas UML y vista de secuencia
+│  ├─ layout/            cabecera con navegación por rol
+│  └─ ui/                componentes de shadcn/ui
 ├─ lib/
-│  ├─ api/http.ts        cliente REST: adjunta el JWT, cierra sesión en 401
-│  ├─ api/graphql.ts     cliente GraphQL: mismos errores que REST (`extensions.code`)
-│  ├─ api/errors.ts      ApiError y códigos de la sección 7.1
+│  ├─ api/               clientes REST y GraphQL por módulo, y ApiError (sección 7.1)
+│  ├─ collab/            sesión STOMP del diagrama (CU-17)
+│  ├─ diagram/           tipos de content_json, vocabulario de operaciones y su aplicación local
 │  ├─ query-client.ts    TanStack Query (no reintenta 4xx)
 │  └─ roles.ts           pantalla de inicio por rol
-├─ components/ui/        componentes de shadcn/ui
-└─ pages/                pantallas (por ahora provisionales)
+└─ pages/                una carpeta por módulo funcional
 ```
+
+## Cómo se edita un diagrama
+
+El cliente **nunca** modifica `content_json` por su cuenta. Cada edición se traduce a una de las 13
+operaciones de la sección 7.3 y se envía por WebSocket a `/app/diagram/{id}/op`; el servidor la valida con el
+`DiagramOperationApplier`, la aplica, incrementa `version` y la difunde. El cliente refleja lo que vuelve
+(D-29). Si la versión recibida no es la siguiente a la local, se recarga el diagrama entero en lugar de
+arriesgar una divergencia (D-30).
 
 ## Convenciones
 

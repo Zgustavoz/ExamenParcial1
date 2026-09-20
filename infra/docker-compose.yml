@@ -2,9 +2,8 @@
 #   docker compose --env-file .env -f infra/docker-compose.yml up -d --build
 # (--env-file es necesario porque el .env vive en la raíz, no junto a este archivo).
 #
-# Los clientes (web React / mobile Flutter) todavía no forman parte de este compose:
-# aquí solo está el backend. El servicio "nginx" ya deja preparado el proxy inverso
-# (/api, /graphql y /ws) y servirá la SPA cuando exista web/dist.
+# El cliente móvil (Flutter) todavía no forma parte de este compose. El servicio "nginx"
+# compila y sirve la SPA de React, y hace de proxy inverso de /api, /graphql y /ws.
 
 name: diagramas
 
@@ -99,11 +98,12 @@ services:
     restart: unless-stopped
 
   nginx:
-    image: nginx:1.27-alpine
+    # La imagen compila la SPA de React y la sirve; la configuración del proxy se monta aparte.
+    build:
+      context: ../web
+      dockerfile: Dockerfile
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-      # La SPA de React se montará aquí cuando exista (web/dist).
-      - ./nginx/html:/usr/share/nginx/html:ro
     ports:
       - "8081:80"
     depends_on:

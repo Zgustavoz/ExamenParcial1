@@ -60,6 +60,6 @@ Referencias: [API.md](API.md) para los contratos, [DECISIONS.md](DECISIONS.md) p
 
 ## F5 — Cierre
 
-- [ ] Dockerfile multi-stage de `web/` y `dist` servido por Nginx en el Compose
+- [x] Dockerfile multi-stage de `web/` y `dist` servido por Nginx en el Compose
 - [ ] E2E con Playwright de CP-01 y CP-02
-- [ ] Repaso final del README y de la guía de puesta en marcha
+- [x] Repaso final del README y de la guía de puesta en marcha

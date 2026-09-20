@@ -3,9 +3,9 @@
 Plataforma multi-tenant (por empresa) para diseñar diagramas de clases UML, con asistente de IA,
 generación de código backend, importación/exportación XMI y colaboración en tiempo real.
 
-> **Estado actual:** están implementados y probados `backend/` (Spring Boot) y `ai-service/` (FastAPI), más la
-> infraestructura para levantarlos. `web/` (React) tiene la base lista (proxy, sesión, guardas, clientes REST y
-> GraphQL) y sus pantallas están por desarrollar. `mobile/` (Flutter) todavía no.
+> **Estado actual:** están implementados y probados `backend/` (Spring Boot), `ai-service/` (FastAPI) y
+> `web/` (React), con los 19 casos de uso del cliente web cubiertos (CU-18 es exclusivo del móvil).
+> `mobile/` (Flutter) todavía no se ha desarrollado.
 
 ## Estructura
 
@@ -45,7 +45,7 @@ docker compose --env-file .env -f infra/docker-compose.yml up -d --build
 |---|---|---|
 | Backend | http://localhost:8080 | REST, GraphQL y WebSocket |
 | PostgreSQL | localhost:15432 | puerto desplazado para no chocar con otro PostgreSQL local |
-| Nginx | http://localhost:8081 | proxy de `/api`, `/graphql` y `/ws`; servirá la SPA |
+| Aplicación web | http://localhost:8081 | la SPA de React y el proxy de `/api`, `/graphql` y `/ws` |
 | RabbitMQ | http://localhost:15672 | consola de administración |
 | ai-service | — | **no** se publica: solo accesible desde la red interna |
 
