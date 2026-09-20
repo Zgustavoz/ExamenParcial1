@@ -52,10 +52,31 @@ Usuarios de prueba (contraseña = `SEED_ADMIN_PASSWORD` del `.env`): `platform/a
 | `pages/projects` | CU-04 y CU-05 proyectos · CU-06 crear diagrama · CU-16 importar XMI |
 | `pages/diagrams/editor` | CU-07 … CU-10 edición · CU-12 y CU-13 asistente · CU-16 exportar · CU-17 colaboración · CU-20 secuencia |
 | `pages/diagrams` | CU-11 visor · CU-14 y CU-15 código |
-| `pages/notifications` | CU-19 notificaciones |
+| `pages/notifications` | CU-19 notificaciones y avisos push del navegador |
 
 CU-18 (modo offline) es obligatorio solo en el móvil; en web es opcional (D-11) y no se implementó.
 El estado detallado está en [docs/PLAN_WEB.md](../docs/PLAN_WEB.md).
+
+## Avisos push (CU-19)
+
+El navegador puede recibir avisos de Firebase Cloud Messaging, incluso con la pestaña cerrada. Se activa
+desde *Notificaciones* → **Activar avisos**, que pide permiso y registra el token con
+`PUT /api/me/fcm-token`.
+
+Necesita las variables `VITE_FIREBASE_*` del `.env` de la raíz (configuración **web** del proyecto, que es
+pública; la credencial secreta del servidor es otra). Sin ellas la pantalla lo indica y el resto de la
+aplicación funciona igual. Vite solo expone al navegador lo que empieza por `VITE_`, así que el resto del
+`.env` no llega al cliente.
+
+Detalles que conviene conocer:
+
+- **Hace falta la clave VAPID** (`VITE_FIREBASE_VAPID_KEY`): Chrome suele exigirla.
+- **En incógnito no funciona**: Chrome deshabilita ahí la Push API a propósito.
+- Como Vite incrusta esas variables al compilar, **cambiarlas obliga a reconstruir** la imagen (`--build`).
+- El service worker (`public/firebase-messaging-sw.js`) no puede leer variables de Vite: la aplicación le
+  pasa la configuración en la query string al registrarlo.
+- Al cerrar sesión se invalida el token, para que la siguiente cuenta que entre en ese navegador no reciba
+  los avisos de la anterior.
 
 ## Estructura
 
@@ -70,6 +91,7 @@ src/
 │  └─ ui/                componentes de shadcn/ui
 ├─ lib/
 │  ├─ api/               clientes REST y GraphQL por módulo, y ApiError (sección 7.1)
+│  ├─ push/              avisos push del navegador con Firebase Cloud Messaging (CU-19)
 │  ├─ collab/            sesión STOMP del diagrama (CU-17)
 │  ├─ diagram/           tipos de content_json, vocabulario de operaciones y su aplicación local
 │  ├─ query-client.ts    TanStack Query (no reintenta 4xx)

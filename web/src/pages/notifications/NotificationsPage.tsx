@@ -10,6 +10,7 @@ import { errorMessage } from '@/lib/api/errors'
 import { listNotifications, markNotificationRead, NOTIFICATION_LABEL } from '@/lib/api/notifications'
 import { formatDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
+import { PushSettings } from './PushSettings'
 
 /** CU-19 Notificaciones: listado del usuario del token y marcar como leída. */
 export default function NotificationsPage() {
@@ -38,6 +39,8 @@ export default function NotificationsPage() {
           {unreadOnly ? 'Ver todas' : 'Solo sin leer'}
         </Button>
       </PageHeader>
+
+      <PushSettings />
 
       {notifications.isPending && (
         <p className="flex items-center gap-2 text-muted-foreground">

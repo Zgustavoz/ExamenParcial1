@@ -8,6 +8,9 @@ import { defineConfig } from 'vitest/config'
 const backend = process.env.VITE_BACKEND_URL ?? 'http://localhost:8080'
 
 export default defineConfig({
+  // Un solo .env para todo el repositorio. Vite solo expone al navegador las variables que empiezan por VITE_,
+  // así que las contraseñas y claves del backend que hay en ese archivo no llegan al cliente.
+  envDir: path.resolve(import.meta.dirname, '..'),
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: { '@': path.resolve(import.meta.dirname, 'src') },

@@ -1,5 +1,7 @@
 import { Bell, Building2, FolderKanban, LogOut, Users } from 'lucide-react'
+import { useEffect } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -10,6 +12,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import type { Role } from '@/lib/api/types'
+import { disablePush, listenForeground, refreshPushToken } from '@/lib/push/push'
+import { queryClient } from '@/lib/query-client'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -58,6 +62,27 @@ export function AppLayout() {
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
   const navigate = useNavigate()
+  const userId = user?.id
+
+  // Push web (CU-19): renueva el token si el usuario ya dio permiso y muestra los avisos que llegan con la
+  // pestaña en primer plano. Sin configuración de Firebase no hace nada.
+  useEffect(() => {
+    if (!userId) return
+    void refreshPushToken()
+    let stop = () => {}
+    let cancelled = false
+    void listenForeground((notification) => {
+      toast(notification.title, { description: notification.body })
+      void queryClient.invalidateQueries({ queryKey: ['notifications'] })
+    }).then((unsubscribe) => {
+      if (cancelled) unsubscribe()
+      else stop = unsubscribe
+    })
+    return () => {
+      cancelled = true
+      stop()
+    }
+  }, [userId])
 
   if (!user) return null
 
@@ -65,6 +90,7 @@ export function AppLayout() {
   const displayName = user.fullName ?? user.username
 
   const signOut = () => {
+    void disablePush() // que la cuenta anterior no siga recibiendo avisos en este navegador
     logout()
     navigate('/login', { replace: true })
   }

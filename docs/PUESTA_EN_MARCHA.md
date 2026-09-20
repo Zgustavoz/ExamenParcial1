@@ -91,6 +91,23 @@ LLM_BASE_URL=http://host.docker.internal:11434/v1
 LLM_MODEL=...
 ```
 
+### Para recibir avisos push en el navegador (opcional)
+
+La configuración **web** de Firebase, que es pública (la secreta es la de `FCM_CREDENTIALS_PATH`):
+
+```
+VITE_FIREBASE_API_KEY=...            # Configuración del proyecto → Tus apps → app web
+VITE_FIREBASE_PROJECT_ID=...
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
+VITE_FIREBASE_VAPID_KEY=...          # Cloud Messaging → Certificados push web → Generar par de claves
+```
+
+Sin estas variables la aplicación funciona igual: la pantalla de notificaciones indica que el push no está
+configurado. Como Vite las incrusta al compilar, **si las cambias hay que reconstruir** la imagen web
+(`docker compose … up -d --build nginx`). En una ventana de incógnito no funcionan: Chrome deshabilita ahí
+la Push API a propósito.
+
 ### Anotar la contraseña del administrador
 
 La necesitarás para iniciar sesión:
