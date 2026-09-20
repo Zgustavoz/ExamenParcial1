@@ -1,5 +1,8 @@
 # Puesta en marcha
 
+> ¿Solo quieres probarlo? **[PROBAR_RAPIDO.md](PROBAR_RAPIDO.md)** lo levanta en 5 minutos, con un recorrido
+> por los casos de uso. Esta guía es la larga, con todos los detalles.
+
 Guía paso a paso para levantar el proyecto. Todos los comandos son de **PowerShell en Windows** y están
 probados en este equipo. Hay dos caminos:
 
@@ -17,11 +20,12 @@ probados en este equipo. Hay dos caminos:
 | **Docker Desktop** | todos los servicios | `docker version` |
 | **JDK 21** | compilar y ejecutar el backend | `java -version` |
 | **Python 3.11+** | ejecutar el `ai-service` fuera de Docker | `python --version` |
+| **Node 22+** | ejecutar el cliente web fuera de Docker | `node --version` |
 
 **Maven no hace falta instalarlo**: el proyecto incluye el *Maven Wrapper* (`backend\mvnw.cmd`), que se
 descarga solo la primera vez que lo usas.
 
-Para el **Camino A** basta con Docker. JDK y Python solo se necesitan en el Camino B.
+Para el **Camino A** basta con Docker. JDK, Python y Node solo se necesitan en el Camino B.
 
 > **Docker Desktop tiene que estar abierto** antes de cualquier comando. Si `docker version` da un error
 > de *pipe* o *daemon*, ábrelo desde el menú Inicio y espera a que el icono deje de animarse.
@@ -106,7 +110,7 @@ Debes ver los seis servicios en `Up` y `(healthy)`:
 ```
 ai-service   Up (healthy)
 backend      Up (healthy)
-nginx        Up (healthy)
+nginx        Up (healthy)   # la aplicacion web
 postgres     Up (healthy)
 rabbitmq     Up (healthy)
 redis        Up (healthy)
@@ -115,7 +119,7 @@ redis        Up (healthy)
 | Servicio | Dirección | Para qué |
 |---|---|---|
 | Backend | http://localhost:8080 | REST, GraphQL y WebSocket |
-| Nginx | http://localhost:8081 | proxy de `/api`, `/graphql` y `/ws`; aquí irá la SPA |
+| Aplicación web | http://localhost:8081 | **la SPA**, más el proxy de `/api`, `/graphql` y `/ws` |
 | RabbitMQ | http://localhost:15672 | consola de administración (usuario y contraseña del `.env`) |
 | PostgreSQL | localhost:**15432** | puerto desplazado para no chocar con otro PostgreSQL local |
 | Redis | localhost:**16379** | ídem |
@@ -231,7 +235,20 @@ java -jar target\platform-0.1.0.jar
 > Si no quieres levantar Redis ni RabbitMQ, pon `COLLAB_DISTRIBUTED=false` en el `.env`: la colaboración
 > usa entonces una implementación en memoria de un solo nodo. Todo lo demás funciona igual.
 
-### Paso 4: arrancar el ai-service
+### Paso 4: arrancar el cliente web
+
+En **otra terminal**, desde la raiz del repositorio:
+
+```powershell
+cd web
+npm install
+npm run dev
+```
+
+Queda en http://localhost:4200 y hace de proxy de `/api`, `/graphql` y `/ws` hacia el backend del 8080,
+asi que la SPA y la API comparten origen igual que en produccion.
+
+### Paso 5: arrancar el ai-service
 
 En **otra terminal**:
 
@@ -267,6 +284,16 @@ Tarda unos 4 minutos. Para una sola clase:
 
 ```powershell
 .\mvnw.cmd test -Dtest=DiagramOperationApplierTest
+```
+
+### Cliente web (164 pruebas)
+
+No necesita Docker ni el backend: la API va simulada.
+
+```powershell
+cd web
+npm install
+npm test
 ```
 
 ### ai-service (52 pruebas)
@@ -367,4 +394,6 @@ docker logs diagramas-ai-service-1 -f
 
 - [docs/API.md](API.md) — todos los endpoints REST, GraphQL y STOMP con sus códigos de error.
 - [docs/DECISIONS.md](DECISIONS.md) — por qué el sistema está construido así.
-- [backend/README.md](../backend/README.md) y [ai-service/README.md](../ai-service/README.md).
+- [docs/PLAN_WEB.md](PLAN_WEB.md) - el estado de cada caso de uso del cliente web.
+- [backend/README.md](../backend/README.md), [ai-service/README.md](../ai-service/README.md) y
+  [web/README.md](../web/README.md).

@@ -48,7 +48,7 @@ Plataforma **multi-tenant (por empresa)** para **diseñar diagramas de clases UM
 | Capa | Tecnología |
 |---|---|
 | Backend | **Java 21**, **Spring Boot 3.x** (última estable compatible con Java 21), Spring Security + **JWT Bearer**, Spring Data JPA/Hibernate, **Spring GraphQL**, Spring WebSocket + **STOMP** |
-| Web | **Angular** (TypeScript, componentes standalone), **JointJS** (editor de clases), **Mermaid** (render de secuencia, solo lectura), **RxJS**, cliente STOMP (`@stomp/rx-stomp`) |
+| Web | **React** + TypeScript + **Vite** (D-27), **React Router**, **@xyflow/react** / React Flow (editor de clases, D-28), **Mermaid** (render de secuencia, solo lectura), **TanStack Query** + **Zustand**, **axios** (REST) + **graphql-request** (GraphQL), cliente STOMP (`@stomp/stompjs`), **shadcn/ui** + Tailwind + **lucide-react** (UI, tema claro) |
 | Móvil | **Flutter / Dart**, `sqflite` (SQLite local), `connectivity_plus`, `firebase_messaging` (FCM) |
 | IA | **Python 3.11**, **FastAPI**, **Pydantic**, proveedor LLM intercambiable (**OpenAI API** o **LLM local**) |
 | Datos | **PostgreSQL** (JSONB, UUID, arrays) |
@@ -56,7 +56,7 @@ Plataforma **multi-tenant (por empresa)** para **diseñar diagramas de clases UM
 | Archivos | **AWS S3** (XMI, ZIP de código generado, adjuntos) |
 | Infra | **Docker / Docker Compose**, **Nginx** (sirve SPA + proxy inverso a backend y WebSocket), Git/GitHub |
 | XMI | Eclipse EMF/UML2 **o** Apache XMLBeans (conversión JSON interno ⇄ XMI) |
-| Pruebas | JUnit 5 + Testcontainers (backend), PyTest (IA), Playwright/Cypress (E2E web) |
+| Pruebas | JUnit 5 + Testcontainers (backend), PyTest (IA), Vitest + Testing Library (web), Playwright (E2E web) |
 
 > No fijes versiones exactas de librerías de memoria: consulta la versión estable vigente al crear cada `pom.xml` / `package.json` / `pubspec.yaml` / `requirements.txt`.
 
@@ -67,7 +67,7 @@ Plataforma **multi-tenant (por empresa)** para **diseñar diagramas de clases UM
 ```
 /
 ├─ backend/        Spring Boot: REST + GraphQL + WebSocket/STOMP
-├─ web/            Angular
+├─ web/            React (Vite + TypeScript)
 ├─ mobile/         Flutter
 ├─ ai-service/     FastAPI (Copilot IA)
 ├─ infra/          docker-compose.yml, nginx/, rabbitmq/ (plugin STOMP), .env.example
@@ -116,11 +116,11 @@ CAPA DE PERSISTENCIA
 ### 4.2 Física (despliegue)
 
 ```
-[Cliente Web/Mobile]  Browser (Angular UI)  |  Mobile App (Flutter)
+[Cliente Web/Mobile]  Browser (React UI)  |  Mobile App (Flutter)
         │ HTTPS / WSS
         ▼
 [AWS EC2 — Docker]
-  ├─ Container Frontend : Nginx + SPA Angular   (proxy → backend, upgrade WebSocket)
+  ├─ Container Frontend : Nginx + SPA React   (proxy → backend, upgrade WebSocket)
   ├─ Container Backend  : Spring Boot API (REST + GraphQL + WebSocket)
   ├─ Container RabbitMQ : STOMP broker relay
   └─ Container AI       : FastAPI (Copilot IA)  ──HTTPS──► [External LLM API]
@@ -453,7 +453,7 @@ Cuando la IA propone operaciones referencia clases **por nombre**; el normalizad
 
 ## 9. Flujos detallados (transcritos de los diagramas de secuencia)
 
-Nomenclatura de análisis: **Boundary** = pantalla/componente de UI (Angular/Flutter) · **Control** = servicio del backend · **Model** = entidad/repositorio · **Microservice** = servicio externo. Sigue **este orden** de pasos; cada rama `ALT` de error debe estar cubierta por un test.
+Nomenclatura de análisis: **Boundary** = pantalla/componente de UI (React/Flutter) · **Control** = servicio del backend · **Model** = entidad/repositorio · **Microservice** = servicio externo. Sigue **este orden** de pasos; cada rama `ALT` de error debe estar cubierta por un test.
 
 ### 9.1 CU-07 Editar diagrama manualmente
 
@@ -682,11 +682,11 @@ Perfiles Spring: `dev`, `test`, `prod`. Logs sin datos sensibles.
 
 ## 11. Clientes
 
-### 11.1 Web (Angular)
+### 11.1 Web (React)
 
-- Componentes **standalone**, rutas *lazy* por módulo, `AuthGuard` + `RoleGuard`, `HttpInterceptor` que adjunta el JWT y maneja `401` (logout) y errores con el formato 7.1.
+- Componentes funcionales, rutas *lazy* por módulo (`React.lazy`), rutas protegidas `RequireAuth` + `RequireRole`, y un cliente HTTP (axios) con interceptor que adjunta el JWT y maneja `401` (logout) y errores con el formato 7.1. El cliente GraphQL (`graphql-request`) aplica el mismo tratamiento y expone `extensions.code`. Estado del servidor con TanStack Query; sesión y estado del editor con Zustand.
 - Módulos/pantallas: `auth` (login con campo **empresa/slug**) · `admin-companies` (CU-02) · `company-users` (CU-03) · `projects` (CU-04/05) · `diagram-editor` (CU-06…10, 12, 13, 17) · `diagram-viewer` (CU-11, solo lectura, zoom) · `code-generation` (CU-14/15: lenguaje, historial, descarga ZIP) · `xmi-panel` (CU-16) · `sequence-panel` (CU-20, render con **Mermaid**) · `notifications` (CU-19).
-- **Editor (JointJS):** paleta (clase, interfaz…), lienzo con arrastrar/soltar, panel de propiedades (atributos, métodos, relaciones con multiplicidades y roles), zoom/pan. Toda edición se traduce a **operaciones** (7.3); la validación del servidor es la autoridad y los errores se muestran como alerta en el editor (CP-01: «la conexión entre esas clases ya existe»).
+- **Editor (React Flow):** paleta (clase, interfaz…), lienzo con arrastrar/soltar, panel de propiedades (atributos, métodos, relaciones con multiplicidades y roles), zoom/pan. Toda edición se traduce a **operaciones** (7.3); la validación del servidor es la autoridad y los errores se muestran como alerta en el editor (CP-01: «la conexión entre esas clases ya existe»).
 - **Autoguardado:** enviar `MOVE_CLASS`/operaciones al terminar el gesto y `saveDiagram` con *debounce* (~2 s de inactividad) y botón «Guardar». Manejar `VERSION_CONFLICT` recargando el estado del servidor.
 - **Chat Copilot:** entrada de texto y **voz** (Web Speech API → transcripción en el cliente, `inputType=VOZ`); muestra los cambios propuestos y botón «Confirmar»; historial (CU-13); errores amigables («el asistente no está disponible», CP-04) sin perder el estado del diagrama.
 - **Colaboración:** cliente STOMP; indicador de participantes; elementos bloqueados por otro usuario se muestran deshabilitados con el nombre de quien edita; reconexión automática.
@@ -756,7 +756,7 @@ Aplica estas decisiones **salvo que el usuario diga otra cosa**. Regístralas en
 |---|---|---|
 | **F0 — Bootstrap** | Repo, `infra/docker-compose.yml` (postgres, redis, rabbitmq), backend con `/actuator/health`, Flyway `V1`+`V2`, `DataInitializer`, `.env.example`, manejo global de errores (7.1), seguridad base | `docker compose up` levanta la infra; el backend arranca y migra; existe el usuario semilla |
 | **F1 — Ciclo C1** | CU-01…05 backend + web (login, empresas, usuarios, proyectos), JWT, roles, multi-tenant | Tests de auth/roles/aislamiento en verde; login redirige por rol |
-| **F2 — Ciclo C2** | CU-06…11: diagramas, `DiagramOperationApplier`, `saveDiagram` con `baseVersion`, GraphQL, `LocalCollab`; web: editor JointJS + visor. Móvil: esqueleto (login, proyectos, visor) | CP-01 y CP-02 pasan; conflicto de versión probado |
+| **F2 — Ciclo C2** | CU-06…11: diagramas, `DiagramOperationApplier`, `saveDiagram` con `baseVersion`, GraphQL, `LocalCollab`; web: editor React Flow + visor. Móvil: esqueleto (login, proyectos, visor) | CP-01 y CP-02 pasan; conflicto de versión probado |
 | **F3 — Ciclo C3** | `ai-service` + CU-12, 13, 14, 15; generador Java; notificación `CODE_READY` (solo registro) | CP-03, CP-04, CP-05, CP-06 pasan; el código generado compila |
 | **F4 — Ciclo C4** | CU-16 (XMI), CU-17 (Redis + RabbitMQ + STOMP), CU-18 (offline móvil), CU-19 (FCM), CU-20 (secuencia) | CP-07, CP-08, CP-09 pasan |
 | **F5 — Cierre** | Dockerfiles de producción, Nginx, E2E, pruebas de seguridad (XXE, zip-slip, tenant), README raíz, `docs/API.md` | `docker compose -f … up` levanta todo; los 9 CP verdes; checklist de abajo cumplido |

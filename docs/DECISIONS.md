@@ -107,3 +107,64 @@ los puertos estándar.
 
 Surefire solo recoge `*Test` por defecto. Se configuró para incluir `*IT`, de modo que `mvn test` ejecute
 toda la suite de una vez. Es lo más simple mientras no exista un pipeline que separe fases.
+
+## Decisiones del cliente web
+
+### D-27 — El frontend web es React, no Angular
+
+`INSTRUCCIONES_AGENTE_CLAUDE.md` fijaba Angular para `web/`. Se cambió a **React + TypeScript + Vite** por
+decisión del equipo. Lo que el documento pedía de Angular tiene su equivalente directo: rutas *lazy* con
+`React.lazy`, `AuthGuard`/`RoleGuard` como componentes de ruta protegida (`RequireAuth`, `RequireRole`),
+`HttpInterceptor` como interceptor de axios, y `@stomp/rx-stomp` como `@stomp/stompjs` (rx-stomp es un
+envoltorio de RxJS sobre ese mismo cliente, y aquí no se usa RxJS). Estado del servidor con TanStack Query;
+sesión y estado del editor con Zustand. El contrato con el backend (REST, GraphQL, STOMP), las pantallas, los
+roles y la redirección post-login **no cambian**.
+
+Para GraphQL se usa `graphql-request` como simple transporte, sin caché normalizada (Apollo/urql): el
+`content_json` cambia por operaciones y por WebSocket, y una caché normalizada solo añadiría problemas de
+sincronización. La UI usa shadcn/ui sobre Tailwind, con iconos de `lucide-react` y tema claro.
+
+### D-28 — React Flow en lugar de JointJS
+
+El editor de clases usa `@xyflow/react` (React Flow, MIT). El backend no depende de la librería del editor:
+solo conoce `content_json` y el vocabulario de 13 operaciones. La clase UML (nombre, atributos, métodos) es un
+nodo personalizado y las relaciones son aristas personalizadas con marcadores UML propios (rombo vacío/lleno,
+triángulo, línea punteada, multiplicidades y roles como etiquetas). Los `id` de nodo y arista son los del
+servidor, nunca los que genere la librería.
+
+### D-29 — Toda edición del diagrama viaja como operación por WebSocket
+
+El editor no modifica `content_json` por su cuenta ni lo envía entero en cada cambio: manda la operación a
+`/app/diagram/{id}/op`, y el servidor la valida con el `DiagramOperationApplier`, la aplica, incrementa
+`version` y la difunde. El cliente refleja lo que vuelve difundido. Es lo que pide la sección 11.1 («la
+validación del servidor es la autoridad») y el flujo 9.1, y de paso hace que CP-01 y CP-09 funcionen por
+construcción.
+
+Como consecuencia, **el autoguardado de CP-02 es automático**: cada operación —incluido `MOVE_CLASS` al
+soltar una clase— queda persistida en el momento, sin necesidad de un temporizador. El botón «Guardar»
+cubre el camino explícito de CU-10 (`saveDiagram` con `baseVersion`), que además es el que gestiona el
+`VERSION_CONFLICT` y el que usará la sincronización offline de CU-18.
+
+### D-30 — El cliente repite los valores por omisión al aplicar una operación difundida
+
+La operación que difunde el servidor lleva los ids que asignó, pero no los valores por omisión: el applier
+los pone sobre su propia copia (`deepCopy`) al guardar en `content_json`. Un `ADD_CLASS` difundido, por
+ejemplo, no trae `visibility`, `stereotype` ni `methods`. El reductor local los repite con los mismos
+criterios (clases `PUBLIC`, atributos `PRIVATE`, métodos `PUBLIC` y `void`) para que el estado local quede
+idéntico al del servidor. Si además se pierde algún mensaje intermedio —la versión recibida no es la
+siguiente a la local— se recarga el diagrama entero en lugar de arriesgar una divergencia.
+
+### D-31 — Un solo punto de conexión por lado en el nodo de clase
+
+El nodo tenía un punto de origen y otro de destino apilados en cada lado. Al estar en la misma posición, el
+de arriba intercepta el puntero y la conexión no se puede soltar sobre el de abajo: arrastrar de una clase a
+otra no funcionaba. Ahora hay **un solo punto por lado** y el lienzo usa `ConnectionMode.Loose`, que permite
+empezar y terminar en cualquiera de ellos. Lo destapó la prueba de aceptación CP-01, que no pasaba de la
+primera conexión.
+
+### D-32 — `CORS_ALLOWED_ORIGINS` incluye el origen de la SPA servida por Nginx
+
+El navegador envía la cabecera `Origin` también en peticiones del mismo origen cuando no son `GET` ni
+`HEAD`. Con la SPA servida en `http://localhost:8081` y solo `http://localhost:4200` en la lista, el backend
+respondía `403` a todo `POST`, incluido el login: la aplicación era inusable en el despliegue con Docker,
+aunque `curl` funcionara. La plantilla `.env.example` incluye ahora ambos orígenes.
