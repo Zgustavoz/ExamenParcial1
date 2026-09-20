@@ -30,5 +30,8 @@ export default defineConfig({
     // Las pruebas montan la aplicación entera y sus rutas diferidas; los 5 s por defecto se quedan cortos
     // en la primera carga de cada pantalla.
     testTimeout: 20_000,
+    // Un proceso por núcleo agota la memoria cuando el stack de Docker está levantado, que es lo normal
+    // mientras se desarrolla: cada worker monta jsdom y la aplicación entera.
+    maxWorkers: 4,
   },
 })

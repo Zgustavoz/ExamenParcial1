@@ -5,13 +5,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { formatParameters, parseParameters } from '@/lib/diagram/parameters'
 import type { DiagramOperation } from '@/lib/diagram/operations'
 import {
   STEREOTYPES,
   VISIBILITIES,
   VISIBILITY_LABEL,
   type Method,
-  type Parameter,
   type Stereotype,
   type UmlClass,
   type Visibility,
@@ -30,22 +30,6 @@ const STEREOTYPE_LABEL: Record<Stereotype, string> = {
 }
 
 const NONE = '__none__'
-
-/** Texto «nombre: tipo, nombre: tipo» ⇄ lista de parámetros. */
-export function parseParameters(text: string): Parameter[] {
-  return text
-    .split(',')
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .map((part) => {
-      const [name, type] = part.split(':').map((s) => s.trim())
-      return { name: name || 'param', type: type || 'String' }
-    })
-}
-
-export function formatParameters(parameters: Parameter[]): string {
-  return parameters.map((p) => `${p.name}: ${p.type}`).join(', ')
-}
 
 /** CU-08 Gestionar clases, atributos y métodos. Cada cambio viaja como una operación. */
 export function ClassPropertiesPanel({ uml, readOnly, send }: Props) {

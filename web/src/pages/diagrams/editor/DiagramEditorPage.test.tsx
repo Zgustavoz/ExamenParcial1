@@ -9,7 +9,7 @@ import type { DiagramOperation } from '@/lib/diagram/operations'
 import type { ClassContent } from '@/lib/diagram/types'
 import { useAuthStore } from '@/stores/auth-store'
 import { renderApp } from '@/test/render'
-import { formatParameters, parseParameters } from './ClassPropertiesPanel'
+import { formatParameters, parseParameters } from '@/lib/diagram/parameters'
 
 vi.mock('@/lib/api/diagrams', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/api/diagrams')>()),
