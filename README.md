@@ -3,9 +3,9 @@
 Plataforma multi-tenant (por empresa) para diseñar diagramas de clases UML, con asistente de IA,
 generación de código backend, importación/exportación XMI y colaboración en tiempo real.
 
-> **Estado actual: solo el backend.** Están implementados y probados `backend/` (Spring Boot) y
-> `ai-service/` (FastAPI), más la infraestructura para levantarlos. Los clientes `web/` (Angular) y
-> `mobile/` (Flutter) todavía no se han desarrollado.
+> **Estado actual:** están implementados y probados `backend/` (Spring Boot) y `ai-service/` (FastAPI), más la
+> infraestructura para levantarlos. `web/` (React) tiene la base lista (proxy, sesión, guardas, clientes REST y
+> GraphQL) y sus pantallas están por desarrollar. `mobile/` (Flutter) todavía no.
 
 ## Estructura
 
@@ -13,6 +13,7 @@ generación de código backend, importación/exportación XMI y colaboración en
 /
 ├─ backend/      Spring Boot 3.5 / Java 21: REST + GraphQL + WebSocket/STOMP
 ├─ ai-service/   FastAPI / Python 3.11: Copilot IA (servicio interno)
+├─ web/          React + Vite + TypeScript: cliente web (ver web/README.md)
 ├─ infra/        docker-compose.yml, nginx/, rabbitmq/
 ├─ docs/         DECISIONS.md, API.md
 ├─ .env.example  plantilla de variables de entorno

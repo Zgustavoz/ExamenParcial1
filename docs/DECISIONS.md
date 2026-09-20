@@ -107,3 +107,27 @@ los puertos estándar.
 
 Surefire solo recoge `*Test` por defecto. Se configuró para incluir `*IT`, de modo que `mvn test` ejecute
 toda la suite de una vez. Es lo más simple mientras no exista un pipeline que separe fases.
+
+## Decisiones del cliente web
+
+### D-27 — El frontend web es React, no Angular
+
+`INSTRUCCIONES_AGENTE_CLAUDE.md` fijaba Angular para `web/`. Se cambió a **React + TypeScript + Vite** por
+decisión del equipo. Lo que el documento pedía de Angular tiene su equivalente directo: rutas *lazy* con
+`React.lazy`, `AuthGuard`/`RoleGuard` como componentes de ruta protegida (`RequireAuth`, `RequireRole`),
+`HttpInterceptor` como interceptor de axios, y `@stomp/rx-stomp` como `@stomp/stompjs` (rx-stomp es un
+envoltorio de RxJS sobre ese mismo cliente, y aquí no se usa RxJS). Estado del servidor con TanStack Query;
+sesión y estado del editor con Zustand. El contrato con el backend (REST, GraphQL, STOMP), las pantallas, los
+roles y la redirección post-login **no cambian**.
+
+Para GraphQL se usa `graphql-request` como simple transporte, sin caché normalizada (Apollo/urql): el
+`content_json` cambia por operaciones y por WebSocket, y una caché normalizada solo añadiría problemas de
+sincronización. La UI usa shadcn/ui sobre Tailwind, con iconos de `lucide-react` y tema claro.
+
+### D-28 — React Flow en lugar de JointJS
+
+El editor de clases usa `@xyflow/react` (React Flow, MIT). El backend no depende de la librería del editor:
+solo conoce `content_json` y el vocabulario de 13 operaciones. La clase UML (nombre, atributos, métodos) es un
+nodo personalizado y las relaciones son aristas personalizadas con marcadores UML propios (rombo vacío/lleno,
+triángulo, línea punteada, multiplicidades y roles como etiquetas). Los `id` de nodo y arista son los del
+servidor, nunca los que genere la librería.
