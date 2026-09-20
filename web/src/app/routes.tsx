@@ -50,7 +50,12 @@ export const routes: RouteObject[] = [
                 path: '/projects',
                 lazy: async () => ({ Component: (await import('@/pages/projects/ProjectsPage')).default }),
               },
-              { path: '/projects/:projectId', element: <Placeholder title="Diagramas del proyecto" cu="CU-06/11" /> },
+              {
+                path: '/projects/:projectId',
+                lazy: async () => ({ Component: (await import('@/pages/projects/ProjectDiagramsPage')).default }),
+              },
+              { path: '/diagrams/:diagramId', element: <Placeholder title="Editor de diagrama" cu="CU-07…10" /> },
+              { path: '/diagrams/:diagramId/view', element: <Placeholder title="Visor de diagrama" cu="CU-11" /> },
             ],
           },
           {
