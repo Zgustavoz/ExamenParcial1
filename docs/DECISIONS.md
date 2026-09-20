@@ -131,3 +131,25 @@ solo conoce `content_json` y el vocabulario de 13 operaciones. La clase UML (nom
 nodo personalizado y las relaciones son aristas personalizadas con marcadores UML propios (rombo vacío/lleno,
 triángulo, línea punteada, multiplicidades y roles como etiquetas). Los `id` de nodo y arista son los del
 servidor, nunca los que genere la librería.
+
+### D-29 — Toda edición del diagrama viaja como operación por WebSocket
+
+El editor no modifica `content_json` por su cuenta ni lo envía entero en cada cambio: manda la operación a
+`/app/diagram/{id}/op`, y el servidor la valida con el `DiagramOperationApplier`, la aplica, incrementa
+`version` y la difunde. El cliente refleja lo que vuelve difundido. Es lo que pide la sección 11.1 («la
+validación del servidor es la autoridad») y el flujo 9.1, y de paso hace que CP-01 y CP-09 funcionen por
+construcción.
+
+Como consecuencia, **el autoguardado de CP-02 es automático**: cada operación —incluido `MOVE_CLASS` al
+soltar una clase— queda persistida en el momento, sin necesidad de un temporizador. El botón «Guardar»
+cubre el camino explícito de CU-10 (`saveDiagram` con `baseVersion`), que además es el que gestiona el
+`VERSION_CONFLICT` y el que usará la sincronización offline de CU-18.
+
+### D-30 — El cliente repite los valores por omisión al aplicar una operación difundida
+
+La operación que difunde el servidor lleva los ids que asignó, pero no los valores por omisión: el applier
+los pone sobre su propia copia (`deepCopy`) al guardar en `content_json`. Un `ADD_CLASS` difundido, por
+ejemplo, no trae `visibility`, `stereotype` ni `methods`. El reductor local los repite con los mismos
+criterios (clases `PUBLIC`, atributos `PRIVATE`, métodos `PUBLIC` y `void`) para que el estado local quede
+idéntico al del servidor. Si además se pierde algún mensaje intermedio —la versión recibida no es la
+siguiente a la local— se recarga el diagrama entero en lugar de arriesgar una divergencia.

@@ -31,13 +31,13 @@ Referencias: [API.md](API.md) para los contratos, [DECISIONS.md](DECISIONS.md) p
 
 - [x] **CU-06 Crear diagrama de clases** (`DESIGNER`) — error `DUPLICATE_DIAGRAM`
 - [x] **CU-11 Consultar diagrama** (todos) — visor de solo lectura con zoom, clases y secuencia
-- [ ] **CU-07 Editar diagrama manualmente** (`DESIGNER`) — lienzo React Flow, paleta, arrastrar y soltar,
+- [x] **CU-07 Editar diagrama manualmente** (`DESIGNER`) — lienzo React Flow, paleta, arrastrar y soltar,
       autoguardado con *debounce* (CP-02); errores `OUT_OF_BOUNDS` y `DUPLICATE_RELATIONSHIP` (CP-01)
-- [ ] **CU-08 Gestionar clases, atributos y métodos** (`DESIGNER`) — panel de propiedades; errores
+- [x] **CU-08 Gestionar clases, atributos y métodos** (`DESIGNER`) — panel de propiedades; errores
       `DUPLICATE_CLASS` e `INVALID_DATATYPE`
-- [ ] **CU-09 Gestionar relaciones** (`DESIGNER`) — tipo, multiplicidades y roles; error
+- [x] **CU-09 Gestionar relaciones** (`DESIGNER`) — tipo, multiplicidades y roles; error
       `INVALID_RELATIONSHIP` (herencia circular)
-- [ ] **CU-10 Guardar y versionar** (`DESIGNER`) — `saveDiagram` con `baseVersion` y recarga ante
+- [x] **CU-10 Guardar y versionar** (`DESIGNER`) — `saveDiagram` con `baseVersion` y recarga ante
       `VERSION_CONFLICT`
 
 ## F3 — Ciclo C3: IA y generación de código

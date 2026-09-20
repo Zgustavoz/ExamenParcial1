@@ -54,7 +54,18 @@ export const routes: RouteObject[] = [
                 path: '/projects/:projectId',
                 lazy: async () => ({ Component: (await import('@/pages/projects/ProjectDiagramsPage')).default }),
               },
-              { path: '/diagrams/:diagramId', element: <Placeholder title="Editor de diagrama" cu="CU-07…10" /> },
+              {
+                // El editor solo tiene sentido para quien puede editar; el resto usa el visor.
+                element: <RequireRole roles={['DESIGNER']} />,
+                children: [
+                  {
+                    path: '/diagrams/:diagramId',
+                    lazy: async () => ({
+                      Component: (await import('@/pages/diagrams/editor/DiagramEditorPage')).default,
+                    }),
+                  },
+                ],
+              },
               {
                 path: '/diagrams/:diagramId/view',
                 lazy: async () => ({ Component: (await import('@/pages/diagrams/DiagramViewerPage')).default }),
