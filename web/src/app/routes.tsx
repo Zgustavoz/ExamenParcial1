@@ -2,11 +2,10 @@ import type { RouteObject } from 'react-router-dom'
 import { HomeRedirect, RedirectIfAuthenticated, RequireAuth, RequireRole } from '@/auth/guards'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { NotFound } from '@/pages/NotFound'
-import { Placeholder } from '@/pages/Placeholder'
 
 /**
- * Mapa de rutas (sección 6 y 11.1). Cada pantalla se carga de forma diferida; las que faltan por implementar
- * usan `Placeholder`. Los roles de cada ruta siguen la tabla de autorización por CU.
+ * Mapa de rutas (sección 6 y 11.1). Cada pantalla se carga de forma diferida.
+ * Los roles de cada ruta siguen la tabla de autorización por CU.
  */
 export const routes: RouteObject[] = [
   {
@@ -78,7 +77,7 @@ export const routes: RouteObject[] = [
           },
           {
             path: '/notifications',
-            element: <Placeholder title="Notificaciones" cu="CU-19" />,
+            lazy: async () => ({ Component: (await import('@/pages/notifications/NotificationsPage')).default }),
           },
         ],
       },
