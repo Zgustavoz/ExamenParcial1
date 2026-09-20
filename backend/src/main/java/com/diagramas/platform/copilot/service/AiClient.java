@@ -32,7 +32,10 @@ public class AiClient {
     private final RestClient client;
 
     public AiClient(AppProperties props) {
+        // HTTP/1.1 explícito: por defecto el cliente de Java intenta subir a HTTP/2 con «Upgrade: h2c» y
+        // uvicorn (el servidor del ai-service) rechaza esa petición con un 400 sin llegar a atenderla.
         HttpClient http = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
                 .connectTimeout(Duration.ofSeconds(5))
                 .build();
         JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(http);
