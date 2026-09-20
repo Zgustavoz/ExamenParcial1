@@ -84,11 +84,14 @@ describe('CU-09 Gestionar relaciones', () => {
     expect(sent).toEqual([{ op: 'UPDATE_RELATIONSHIP', relationshipId: 'r1', changes: { sourceRole: null } }])
   })
 
-  it('elimina la relación', async () => {
+  it('eliminar la relación pide confirmación antes de enviarla', async () => {
     const { sent, user } = renderPanel()
 
     await user.click(screen.getByRole('button', { name: 'Eliminar la relación' }))
+    expect(await screen.findByRole('alertdialog')).toHaveTextContent(/Cliente y Pedido/)
+    expect(sent).toHaveLength(0)
 
+    await user.click(screen.getByRole('button', { name: 'Eliminar la relación' }))
     expect(sent).toEqual([{ op: 'REMOVE_RELATIONSHIP', relationshipId: 'r1' }])
   })
 

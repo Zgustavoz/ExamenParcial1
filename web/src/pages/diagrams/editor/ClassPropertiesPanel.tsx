@@ -1,5 +1,6 @@
 import { Plus, Trash2 } from 'lucide-react'
 import { useId } from 'react'
+import { ConfirmButton } from '@/components/ConfirmButton'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -248,14 +249,16 @@ export function ClassPropertiesPanel({ uml, readOnly, send }: Props) {
 
       <Separator />
 
-      <Button
-        variant="destructive"
+      <ConfirmButton
+        title={`¿Eliminar la clase ${uml.name}?`}
+        description="Se eliminarán también las relaciones que la conectan con otras clases. No se puede deshacer."
+        confirmLabel="Eliminar la clase"
         disabled={readOnly}
-        onClick={() => send({ op: 'REMOVE_CLASS', classId: uml.id })}
+        onConfirm={() => send({ op: 'REMOVE_CLASS', classId: uml.id })}
       >
         <Trash2 className="size-4" aria-hidden />
         Eliminar la clase
-      </Button>
+      </ConfirmButton>
     </div>
   )
 }

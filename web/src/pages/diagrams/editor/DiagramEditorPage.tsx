@@ -146,9 +146,10 @@ export default function DiagramEditorPage() {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Button asChild variant="ghost" size="sm" className="-ml-2">
-            <Link to="/projects">
+            {/* Al proyecto del diagrama, no a la lista de proyectos: desde ahí se pierde de vista. */}
+            <Link to={editor.projectId ? `/projects/${editor.projectId}` : '/projects'}>
               <ArrowLeft className="size-4" aria-hidden />
-              Proyectos
+              Volver al proyecto
             </Link>
           </Button>
           <span className="font-medium">{editor.name}</span>

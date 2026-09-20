@@ -141,16 +141,32 @@ describe('CU-08 Gestionar clases, atributos y métodos', () => {
     ])
   })
 
-  it('elimina un método y la clase entera', async () => {
+  it('elimina un método', async () => {
     const { sent, user } = renderPanel()
 
     await user.click(screen.getByRole('button', { name: 'Eliminar el método getNombre' }))
-    await user.click(screen.getByRole('button', { name: 'Eliminar la clase' }))
 
-    expect(sent).toEqual([
-      { op: 'REMOVE_METHOD', classId: 'c1', methodId: 'm1' },
-      { op: 'REMOVE_CLASS', classId: 'c1' },
-    ])
+    expect(sent).toEqual([{ op: 'REMOVE_METHOD', classId: 'c1', methodId: 'm1' }])
+  })
+
+  it('eliminar la clase pide confirmación antes de enviarla', async () => {
+    const { sent, user } = renderPanel()
+
+    await user.click(screen.getByRole('button', { name: 'Eliminar la clase' }))
+    expect(await screen.findByRole('alertdialog')).toHaveTextContent(/¿Eliminar la clase Cliente\?/)
+    expect(sent).toHaveLength(0)
+
+    await user.click(screen.getByRole('button', { name: 'Eliminar la clase' }))
+    expect(sent).toEqual([{ op: 'REMOVE_CLASS', classId: 'c1' }])
+  })
+
+  it('cancelar la confirmación no elimina nada', async () => {
+    const { sent, user } = renderPanel()
+
+    await user.click(screen.getByRole('button', { name: 'Eliminar la clase' }))
+    await user.click(await screen.findByRole('button', { name: 'Cancelar' }))
+
+    expect(sent).toHaveLength(0)
   })
 
   it('en modo lectura todo queda deshabilitado', () => {

@@ -1,6 +1,6 @@
 import { Trash2 } from 'lucide-react'
 import { useId } from 'react'
-import { Button } from '@/components/ui/button'
+import { ConfirmButton } from '@/components/ConfirmButton'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -126,14 +126,16 @@ export function RelationshipPanel({ relationship, classes, readOnly, send }: Pro
 
       <Separator />
 
-      <Button
-        variant="destructive"
+      <ConfirmButton
+        title="¿Eliminar la relación?"
+        description={`Se quitará la conexión entre ${nameOf(relationship.sourceId)} y ${nameOf(relationship.targetId)}. No se puede deshacer.`}
+        confirmLabel="Eliminar la relación"
         disabled={readOnly}
-        onClick={() => send({ op: 'REMOVE_RELATIONSHIP', relationshipId: relationship.id })}
+        onConfirm={() => send({ op: 'REMOVE_RELATIONSHIP', relationshipId: relationship.id })}
       >
         <Trash2 className="size-4" aria-hidden />
         Eliminar la relación
-      </Button>
+      </ConfirmButton>
     </div>
   )
 }

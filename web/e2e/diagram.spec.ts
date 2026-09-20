@@ -106,3 +106,52 @@ test('CP-02: el cambio de posición persiste tras recargar', async ({ page }) =>
   const despues = await flowPosition(page)
   expect(Math.abs(despues.x - antes.x) + Math.abs(despues.y - antes.y)).toBeGreaterThan(50)
 })
+
+test('el panel de propiedades sobrevive a agregar y editar un atributo', async ({ page }) => {
+  await login(page)
+  await newDiagram(page)
+  await addClass(page, 1)
+
+  await page.locator('.react-flow__node').first().click()
+  await expect(page.getByLabel('Nombre de la clase')).toBeVisible()
+
+  const panel = page.locator('aside')
+  await panel.getByRole('button', { name: 'Agregar', exact: true }).first().click()
+
+  // La operación difundida no debe cerrar el panel ni deseleccionar la clase.
+  await expect(page.getByLabel('Nombre de la clase')).toBeVisible()
+  await expect(panel.getByRole('textbox', { name: /Nombre del atributo/ })).toBeVisible()
+
+  await panel.getByRole('textbox', { name: /Tipo del atributo/ }).fill('Integer')
+  await page.getByLabel('Nombre de la clase').click()
+
+  await expect(page.locator('.react-flow__node').first()).toContainText('atributo1: Integer')
+  await expect(page.getByLabel('Nombre de la clase')).toBeVisible()
+})
+
+test('desde el editor se vuelve al proyecto del diagrama', async ({ page }) => {
+  await login(page)
+  const suffix = Date.now().toString().slice(-6)
+
+  await page.getByRole('button', { name: 'Nuevo proyecto' }).click()
+  await page.getByLabel('Nombre').fill(`Vuelta ${suffix}`)
+  await page.getByRole('button', { name: 'Crear' }).click()
+  await expect(page.getByRole('dialog')).toBeHidden()
+  await page.getByRole('link', { name: `Vuelta ${suffix}` }).click()
+  await page.waitForURL(/\/projects\/[0-9a-f-]{36}$/)
+  const projectUrl = page.url()
+
+  await page.getByRole('button', { name: 'Nuevo diagrama' }).click()
+  await page.getByLabel('Nombre').fill(`Diag ${suffix}`)
+  await page.getByRole('button', { name: 'Crear' }).click()
+  await expect(page.getByRole('button', { name: 'Agregar clase' })).toBeVisible()
+
+  await page.getByRole('link', { name: 'Volver al proyecto' }).click()
+
+  await expect(page).toHaveURL(projectUrl)
+  await expect(page.getByRole('link', { name: `Diag ${suffix}` })).toBeVisible()
+
+  // Y sigue estando tras recargar.
+  await page.reload()
+  await expect(page.getByRole('link', { name: `Diag ${suffix}` })).toBeVisible()
+})

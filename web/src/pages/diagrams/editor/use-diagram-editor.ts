@@ -11,6 +11,8 @@ import { useAuthStore } from '@/stores/auth-store'
 
 interface EditorState {
   name: string
+  /** Proyecto al que pertenece, para poder volver a él desde el editor. */
+  projectId: string | null
   content: ClassContent | null
   version: number
   /** `elementId → nombre de quien lo tiene bloqueado`, sin contar los bloqueos propios. */
@@ -19,7 +21,7 @@ interface EditorState {
   connected: boolean
 }
 
-const INITIAL: EditorState = { name: '', content: null, version: 0, locks: {}, participants: [], connected: false }
+const INITIAL: EditorState = { name: '', projectId: null, content: null, version: 0, locks: {}, participants: [], connected: false }
 
 /**
  * Estado del editor (CU-07 … CU-10, CU-17). Toda edición se envía como operación por WebSocket: el servidor
@@ -53,6 +55,7 @@ export function useDiagramEditor(diagramId: string) {
       setState((prev) => ({
         ...prev,
         name: diagram.name,
+        projectId: diagram.projectId,
         content: diagram.contentJson as ClassContent,
         version: diagram.version,
       }))

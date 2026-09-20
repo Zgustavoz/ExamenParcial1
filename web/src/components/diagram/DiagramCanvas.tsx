@@ -128,6 +128,9 @@ export function DiagramCanvas({
         nodesConnectable={editable}
         elementsSelectable
         edgesReconnectable={false}
+        // Borrar solo por la acción explícita: cada baja tiene que pasar por el vocabulario de operaciones
+        // y por la validación del servidor, nunca por una tecla.
+        deleteKeyCode={null}
         fitView
         fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
         minZoom={0.1}
