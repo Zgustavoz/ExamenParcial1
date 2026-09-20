@@ -19,7 +19,7 @@ Referencias: [API.md](API.md) para los contratos, [DECISIONS.md](DECISIONS.md) p
 
 - [x] **CU-01 Iniciar sesión** — formulario con empresa, usuario y contraseña; redirección por rol; errores
       `INVALID_CREDENTIALS`, `USER_INACTIVE`, `COMPANY_DISABLED`
-- [ ] **CU-02 Gestionar empresas** (`SOFTWARE_ADMIN`) — listar, crear, editar, activar/desactivar y crear el
+- [x] **CU-02 Gestionar empresas** (`SOFTWARE_ADMIN`) — listar, crear, editar, activar/desactivar y crear el
       primer `COMPANY_ADMIN`; error `DUPLICATE_COMPANY`
 - [ ] **CU-03 Gestionar usuarios de empresa** (`COMPANY_ADMIN`) — crear, editar y desactivar; roles sin
       `SOFTWARE_ADMIN`; errores `DUPLICATE_USER` y `VALIDATION_ERROR`

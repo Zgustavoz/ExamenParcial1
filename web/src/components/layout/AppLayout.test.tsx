@@ -4,6 +4,11 @@ import type { Role, User } from '@/lib/api/types'
 import { useAuthStore } from '@/stores/auth-store'
 import { renderApp } from '@/test/render'
 
+vi.mock('@/lib/api/companies', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/api/companies')>()),
+  listCompanies: vi.fn(async () => []),
+}))
+
 function signIn(...roles: Role[]): User {
   const user: User = {
     id: 'u1',
@@ -19,8 +24,8 @@ function signIn(...roles: Role[]): User {
   return user
 }
 
-function navLinks() {
-  return within(screen.getByRole('navigation', { name: 'Principal' }))
+async function navLinks() {
+  return within(await screen.findByRole('navigation', { name: 'Principal' }))
     .getAllByRole('link')
     .map((link) => link.textContent)
 }
@@ -28,22 +33,22 @@ function navLinks() {
 describe('marco de la aplicación', () => {
   afterEach(() => useAuthStore.getState().logout())
 
-  it('el SOFTWARE_ADMIN solo ve Empresas y Notificaciones', () => {
+  it('el SOFTWARE_ADMIN solo ve Empresas y Notificaciones', async () => {
     signIn('SOFTWARE_ADMIN')
     renderApp('/admin/companies')
-    expect(navLinks()).toEqual(['Empresas', 'Notificaciones'])
+    expect(await navLinks()).toEqual(['Empresas', 'Notificaciones'])
   })
 
-  it('el COMPANY_ADMIN ve Usuarios y Proyectos, no Empresas', () => {
+  it('el COMPANY_ADMIN ve Usuarios y Proyectos, no Empresas', async () => {
     signIn('COMPANY_ADMIN')
     renderApp('/company/users')
-    expect(navLinks()).toEqual(['Usuarios', 'Proyectos', 'Notificaciones'])
+    expect(await navLinks()).toEqual(['Usuarios', 'Proyectos', 'Notificaciones'])
   })
 
-  it('el DESIGNER solo ve Proyectos y Notificaciones', () => {
+  it('el DESIGNER solo ve Proyectos y Notificaciones', async () => {
     signIn('DESIGNER')
     renderApp('/projects')
-    expect(navLinks()).toEqual(['Proyectos', 'Notificaciones'])
+    expect(await navLinks()).toEqual(['Proyectos', 'Notificaciones'])
   })
 
   it('cerrar sesión limpia el store y lleva al login', async () => {

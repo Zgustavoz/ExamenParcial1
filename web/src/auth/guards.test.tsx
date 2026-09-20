@@ -3,6 +3,12 @@ import type { Role, User } from '@/lib/api/types'
 import { useAuthStore } from '@/stores/auth-store'
 import { renderApp } from '@/test/render'
 
+// Las pantallas reales se cargan de forma diferida; aquí solo interesa a cuál se llega.
+vi.mock('@/lib/api/companies', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/api/companies')>()),
+  listCompanies: vi.fn(async () => []),
+}))
+
 function userWith(...roles: Role[]): User {
   return {
     id: 'u1',
@@ -29,10 +35,10 @@ describe('guardas de ruta', () => {
     ['COMPANY_ADMIN', '/admin/companies', 'Usuarios de la empresa'],
     ['DESIGNER', '/company/users', 'Proyectos'],
     ['DEVELOPER', '/admin/companies', 'Proyectos'],
-  ] as const)('%s que entra a %s termina en «%s»', (role, path, heading) => {
+  ] as const)('%s que entra a %s termina en «%s»', async (role, path, heading) => {
     useAuthStore.getState().login('t', userWith(role))
     renderApp(path)
-    expect(screen.getByRole('heading', { name: heading })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: heading })).toBeInTheDocument()
   })
 
   it('con sesión, el login redirige a la pantalla del rol', async () => {
