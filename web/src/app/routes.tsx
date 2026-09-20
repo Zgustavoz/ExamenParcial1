@@ -1,0 +1,34 @@
+import type { RouteObject } from 'react-router-dom'
+import { HomeRedirect, RedirectIfAuthenticated, RequireAuth, RequireRole } from '@/auth/guards'
+import { NotFound } from '@/pages/NotFound'
+import { Placeholder } from '@/pages/Placeholder'
+
+/**
+ * Mapa de rutas (sección 6 y 11.1). Cada pantalla se irá sustituyendo por su módulo real, cargado con `lazy`.
+ * Los roles de cada ruta siguen la tabla de autorización por CU.
+ */
+export const routes: RouteObject[] = [
+  {
+    element: <RedirectIfAuthenticated />,
+    children: [{ path: '/login', element: <Placeholder title="Iniciar sesión" cu="CU-01" /> }],
+  },
+  {
+    element: <RequireAuth />,
+    children: [
+      { index: true, element: <HomeRedirect /> },
+      {
+        element: <RequireRole roles={['SOFTWARE_ADMIN']} />,
+        children: [{ path: '/admin/companies', element: <Placeholder title="Empresas" cu="CU-02" /> }],
+      },
+      {
+        element: <RequireRole roles={['COMPANY_ADMIN']} />,
+        children: [{ path: '/company/users', element: <Placeholder title="Usuarios de la empresa" cu="CU-03" /> }],
+      },
+      {
+        element: <RequireRole roles={['COMPANY_ADMIN', 'DESIGNER', 'DEVELOPER']} />,
+        children: [{ path: '/projects', element: <Placeholder title="Proyectos" cu="CU-04/05" /> }],
+      },
+    ],
+  },
+  { path: '*', element: <NotFound /> },
+]

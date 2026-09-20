@@ -1,0 +1,29 @@
+import tailwindcss from '@tailwindcss/vite'
+import react from '@vitejs/plugin-react'
+import path from 'node:path'
+import { defineConfig } from 'vitest/config'
+
+// En desarrollo, Vite hace de proxy hacia el backend (mismo origen que en producción con Nginx,
+// así no hay problemas de CORS). El destino se puede cambiar con VITE_BACKEND_URL.
+const backend = process.env.VITE_BACKEND_URL ?? 'http://localhost:8080'
+
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: { '@': path.resolve(import.meta.dirname, 'src') },
+  },
+  server: {
+    port: 4200,
+    proxy: {
+      '/api': backend,
+      '/graphql': backend,
+      '/ws': { target: backend, ws: true },
+    },
+  },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: './src/test/setup.ts',
+    css: false,
+  },
+})
