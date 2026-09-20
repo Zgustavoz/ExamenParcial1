@@ -80,8 +80,8 @@ services:
       COLLAB_DISTRIBUTED: "true"
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
       STORAGE_LOCAL_DIR: /app/data/storage
-      # Push por FCM: si existe secrets/fcm.json se activa; si no, las notificaciones solo se guardan en BD.
-      FCM_CREDENTIALS_PATH: /run/secrets/fcm.json
+      # Push por FCM: si existe secrets/firebase-key.json se activa; si no, las notificaciones solo se guardan en BD.
+      FCM_CREDENTIALS_PATH: /run/secrets/firebase-key.json
     volumes:
       - backend-storage:/app/data/storage
       # Carpeta (no archivo) de secretos: funciona aunque esté vacía y evita que Docker cree un directorio
