@@ -69,12 +69,19 @@ OpenAI», no «usar OpenAI»; lo que cambia es la URL base:
 ```
 LLM_PROVIDER=openai
 LLM_API_KEY=AIza...
-LLM_MODEL=...                 # un nombre de modelo Gemini válido para tu cuenta
+LLM_MODEL=gemini-flash-lite-latest
 LLM_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai
 ```
 
-Si el endpoint de Gemini rechaza el parámetro `response_format`, el `ai-service` lo detecta (HTTP 400) y
-reintenta sin él automáticamente; no hay que configurar nada.
+> **Elige un modelo «lite», no `gemini-flash-latest`.** Ese último es un modelo que «piensa» antes de
+> responder: con una petición mínima ya tarda ~6 s y con el prompt real del Copilot supera el límite de
+> 25 s (`LLM_TIMEOUT_SECONDS`), así que el asistente respondería «tardó demasiado». `gemini-flash-lite-latest`
+> responde en ~1,5 s. Los modelos `gemini-2.5-*` ya no están disponibles para cuentas nuevas (HTTP 404).
+> Para ver qué modelos admite tu clave: `GET https://generativelanguage.googleapis.com/v1beta/openai/models`
+> con la cabecera `Authorization: Bearer <tu clave>`.
+
+Gemini acepta el parámetro `response_format` del `ai-service`; si otro proveedor lo rechazara (HTTP 400), el
+servicio reintenta sin él automáticamente.
 
 Para usar un LLM local (Ollama, LM Studio…) en vez de OpenAI:
 
