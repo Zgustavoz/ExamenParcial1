@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, GitBranch, LoaderCircle, Plus, Shapes } from 'lucide-react'
+import { ArrowLeft, GitBranch, LoaderCircle, Plus, Shapes, Upload } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { FormError } from '@/components/FormError'
@@ -12,6 +12,7 @@ import { getProject } from '@/lib/api/projects'
 import { formatDate } from '@/lib/format'
 import { hasAnyRole, useAuthStore } from '@/stores/auth-store'
 import { DiagramFormDialog } from './DiagramFormDialog'
+import { XmiImportDialog } from './XmiImportDialog'
 
 /** Diagramas de un proyecto: punto de entrada a CU-06 (crear) y CU-11 (consultar). */
 export default function ProjectDiagramsPage() {
@@ -19,6 +20,7 @@ export default function ProjectDiagramsPage() {
   const user = useAuthStore((s) => s.user)
   const isDesigner = hasAnyRole(user, ['DESIGNER'])
   const [creating, setCreating] = useState(false)
+  const [importing, setImporting] = useState(false)
 
   const project = useQuery({ queryKey: ['project', projectId], queryFn: () => getProject(projectId) })
   const diagrams = useQuery({ queryKey: ['diagrams', projectId], queryFn: () => listDiagrams(projectId) })
@@ -37,10 +39,16 @@ export default function ProjectDiagramsPage() {
         description={project.data?.description || 'Diagramas de este proyecto.'}
       >
         {isDesigner && (
-          <Button onClick={() => setCreating(true)}>
-            <Plus className="size-4" aria-hidden />
-            Nuevo diagrama
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setImporting(true)}>
+              <Upload className="size-4" aria-hidden />
+              Importar XMI
+            </Button>
+            <Button onClick={() => setCreating(true)}>
+              <Plus className="size-4" aria-hidden />
+              Nuevo diagrama
+            </Button>
+          </div>
         )}
       </PageHeader>
 
@@ -98,6 +106,10 @@ export default function ProjectDiagramsPage() {
 
       {creating && (
         <DiagramFormDialog projectId={projectId} open onOpenChange={(open) => !open && setCreating(false)} />
+      )}
+
+      {importing && (
+        <XmiImportDialog projectId={projectId} open onOpenChange={(open) => !open && setImporting(false)} />
       )}
     </>
   )

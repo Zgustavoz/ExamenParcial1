@@ -81,3 +81,17 @@ export function versionConflictDetails(details: Record<string, unknown>): Versio
   if (typeof currentVersion !== 'number' || typeof contentJson !== 'object' || contentJson === null) return null
   return { currentVersion, contentJson: contentJson as DiagramContent }
 }
+
+/**
+ * CU-20. Analiza el diagrama de clases con la IA y crea un diagrama `SEQUENCE` nuevo, con
+ * `source_diagram_id` apuntando al de origen.
+ */
+export async function generateSequenceDiagram(sourceDiagramId: string): Promise<Diagram> {
+  const data = await gql<{ generateSequenceDiagram: Diagram }>(
+    `mutation GenerateSequence($sourceDiagramId: ID!) {
+       generateSequenceDiagram(sourceDiagramId: $sourceDiagramId) { ${DIAGRAM_FIELDS} }
+     }`,
+    { sourceDiagramId },
+  )
+  return data.generateSequenceDiagram
+}

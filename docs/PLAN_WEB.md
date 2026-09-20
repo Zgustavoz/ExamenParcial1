@@ -50,7 +50,7 @@ Referencias: [API.md](API.md) para los contratos, [DECISIONS.md](DECISIONS.md) p
 
 ## F4 — Ciclo C4: integración, colaboración y notificaciones
 
-- [ ] **CU-16 Exportar/Importar XMI** (`DESIGNER`) — descarga y carga con `XMI_INVALID`
+- [x] **CU-16 Exportar/Importar XMI** (`DESIGNER`) — descarga y carga con `XMI_INVALID`
 - [ ] **CU-17 Colaborar en tiempo real** (`DESIGNER`, `DEVELOPER`) — STOMP, participantes, bloqueo por
       elemento (`ELEMENT_LOCKED`) y reconexión con *backoff* (CP-09)
 - [ ] **CU-19 Notificaciones** (todos) — listado y marcar como leída

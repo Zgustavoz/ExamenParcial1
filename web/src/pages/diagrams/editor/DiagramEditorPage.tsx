@@ -1,12 +1,31 @@
+import { useMutation } from '@tanstack/react-query'
 import { ReactFlowProvider, type Connection, type NodeChange } from '@xyflow/react'
-import { ArrowLeft, Bot, Code2, Eye, LoaderCircle, Plus, Save, SlidersHorizontal, Users, Wifi, WifiOff } from 'lucide-react'
+import {
+  ArrowLeft,
+  Bot,
+  Code2,
+  Download,
+  Eye,
+  GitBranch,
+  LoaderCircle,
+  Plus,
+  Save,
+  SlidersHorizontal,
+  Users,
+  Wifi,
+  WifiOff,
+} from 'lucide-react'
 import { useCallback, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { toast } from 'sonner'
 import { DiagramCanvas } from '@/components/diagram/DiagramCanvas'
 import type { UmlNode } from '@/components/diagram/UmlClassNode'
 import { FormError } from '@/components/FormError'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { generateSequenceDiagram } from '@/lib/api/diagrams'
+import { errorMessage } from '@/lib/api/errors'
+import { exportXmi } from '@/lib/api/xmi'
 import type { NewRelationship } from '@/lib/diagram/operations'
 import { clampToCanvas } from '@/lib/diagram/types'
 import { cn } from '@/lib/utils'
@@ -19,6 +38,7 @@ import { useDiagramEditor } from './use-diagram-editor'
 /** CU-07 … CU-10: edición manual del diagrama de clases. */
 export default function DiagramEditorPage() {
   const { diagramId = '' } = useParams()
+  const navigate = useNavigate()
   const editor = useDiagramEditor(diagramId)
   const { content, classes, locks, participants, connected, loadError, saving, send, save, reload } = editor
 
@@ -59,6 +79,22 @@ export default function DiagramEditorPage() {
       },
     })
 
+  /** CU-16 Exportar el diagrama a XMI. */
+  const exportar = useMutation({
+    mutationFn: () => exportXmi(diagramId, editor.name || 'diagrama'),
+    onError: (error) => toast.error(errorMessage(error)),
+  })
+
+  /** CU-20 Generar el diagrama de secuencia derivado y abrirlo. */
+  const secuencia = useMutation({
+    mutationFn: () => generateSequenceDiagram(diagramId),
+    onSuccess: (diagram) => {
+      toast.success('Diagrama de secuencia generado.')
+      navigate(`/diagrams/${diagram.id}/view`)
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  })
+
   const createRelationship = (relationship: NewRelationship) => {
     send({ op: 'ADD_RELATIONSHIP', relationship })
     setPendingConnection(null)
@@ -94,6 +130,7 @@ export default function DiagramEditorPage() {
               Proyectos
             </Link>
           </Button>
+          <span className="font-medium">{editor.name}</span>
           <Badge variant="outline">versión {editor.version}</Badge>
           {connected ? (
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -115,6 +152,27 @@ export default function DiagramEditorPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => secuencia.mutate()}
+            disabled={secuencia.isPending}
+          >
+            {secuencia.isPending ? (
+              <LoaderCircle className="size-4 animate-spin" aria-hidden />
+            ) : (
+              <GitBranch className="size-4" aria-hidden />
+            )}
+            Secuencia
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => exportar.mutate()} disabled={exportar.isPending}>
+            {exportar.isPending ? (
+              <LoaderCircle className="size-4 animate-spin" aria-hidden />
+            ) : (
+              <Download className="size-4" aria-hidden />
+            )}
+            XMI
+          </Button>
           <Button variant="outline" size="sm" asChild>
             <Link to={`/diagrams/${diagramId}/code`}>
               <Code2 className="size-4" aria-hidden />
