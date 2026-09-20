@@ -4,13 +4,18 @@ import { NotFound } from '@/pages/NotFound'
 import { Placeholder } from '@/pages/Placeholder'
 
 /**
- * Mapa de rutas (sección 6 y 11.1). Cada pantalla se irá sustituyendo por su módulo real, cargado con `lazy`.
- * Los roles de cada ruta siguen la tabla de autorización por CU.
+ * Mapa de rutas (sección 6 y 11.1). Cada pantalla se carga de forma diferida; las que faltan por implementar
+ * usan `Placeholder`. Los roles de cada ruta siguen la tabla de autorización por CU.
  */
 export const routes: RouteObject[] = [
   {
     element: <RedirectIfAuthenticated />,
-    children: [{ path: '/login', element: <Placeholder title="Iniciar sesión" cu="CU-01" /> }],
+    children: [
+      {
+        path: '/login',
+        lazy: async () => ({ Component: (await import('@/pages/auth/LoginPage')).default }),
+      },
+    ],
   },
   {
     element: <RequireAuth />,

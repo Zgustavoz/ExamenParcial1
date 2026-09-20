@@ -17,7 +17,7 @@ Referencias: [API.md](API.md) para los contratos, [DECISIONS.md](DECISIONS.md) p
 
 ## F1 — Ciclo C1: acceso y administración
 
-- [ ] **CU-01 Iniciar sesión** — formulario con empresa, usuario y contraseña; redirección por rol; errores
+- [x] **CU-01 Iniciar sesión** — formulario con empresa, usuario y contraseña; redirección por rol; errores
       `INVALID_CREDENTIALS`, `USER_INACTIVE`, `COMPANY_DISABLED`
 - [ ] **CU-02 Gestionar empresas** (`SOFTWARE_ADMIN`) — listar, crear, editar, activar/desactivar y crear el
       primer `COMPANY_ADMIN`; error `DUPLICATE_COMPANY`

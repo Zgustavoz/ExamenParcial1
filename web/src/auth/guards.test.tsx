@@ -1,8 +1,7 @@
-import { render, screen } from '@testing-library/react'
-import { createMemoryRouter, RouterProvider } from 'react-router-dom'
-import { routes } from '@/app/routes'
+import { screen, waitFor } from '@testing-library/react'
 import type { Role, User } from '@/lib/api/types'
 import { useAuthStore } from '@/stores/auth-store'
+import { renderApp } from '@/test/render'
 
 function userWith(...roles: Role[]): User {
   return {
@@ -17,16 +16,12 @@ function userWith(...roles: Role[]): User {
   }
 }
 
-function renderAt(path: string) {
-  render(<RouterProvider router={createMemoryRouter(routes, { initialEntries: [path] })} />)
-}
-
 describe('guardas de ruta', () => {
   afterEach(() => useAuthStore.getState().logout())
 
-  it('sin sesión, cualquier ruta protegida lleva al login', () => {
-    renderAt('/projects')
-    expect(screen.getByRole('heading', { name: 'Iniciar sesión' })).toBeInTheDocument()
+  it('sin sesión, cualquier ruta protegida lleva al login', async () => {
+    const { router } = renderApp('/projects')
+    await waitFor(() => expect(router.state.location.pathname).toBe('/login'))
   })
 
   it.each([
@@ -36,13 +31,20 @@ describe('guardas de ruta', () => {
     ['DEVELOPER', '/admin/companies', 'Proyectos'],
   ] as const)('%s que entra a %s termina en «%s»', (role, path, heading) => {
     useAuthStore.getState().login('t', userWith(role))
-    renderAt(path)
+    renderApp(path)
     expect(screen.getByRole('heading', { name: heading })).toBeInTheDocument()
   })
 
-  it('con sesión, el login redirige a la pantalla del rol', () => {
+  it('con sesión, el login redirige a la pantalla del rol', async () => {
     useAuthStore.getState().login('t', userWith('COMPANY_ADMIN'))
-    renderAt('/login')
+    const { router } = renderApp('/login')
+    await waitFor(() => expect(router.state.location.pathname).toBe('/company/users'))
     expect(screen.getByRole('heading', { name: 'Usuarios de la empresa' })).toBeInTheDocument()
+  })
+
+  it('una dirección desconocida muestra la página de error', () => {
+    useAuthStore.getState().login('t', userWith('DESIGNER'))
+    renderApp('/no-existe')
+    expect(screen.getByRole('heading', { name: 'Página no encontrada' })).toBeInTheDocument()
   })
 })
