@@ -54,7 +54,7 @@ Referencias: [API.md](API.md) para los contratos, [DECISIONS.md](DECISIONS.md) p
 - [x] **CU-17 Colaborar en tiempo real** (`DESIGNER`, `DEVELOPER`) — STOMP, participantes, bloqueo por
       elemento (`ELEMENT_LOCKED`) y reconexión con *backoff* (CP-09)
 - [x] **CU-19 Notificaciones** (todos) — listado y marcar como leída
-- [ ] **CU-20 Generar diagrama de secuencia** (`DESIGNER`) — render con Mermaid
+- [x] **CU-20 Generar diagrama de secuencia** (`DESIGNER`) — render con Mermaid
 
 > CU-18 (modo offline) es obligatorio solo en móvil: en web es opcional (D-11) y queda fuera de este plan.
 

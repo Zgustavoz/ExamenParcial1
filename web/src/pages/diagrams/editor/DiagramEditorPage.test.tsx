@@ -1,6 +1,7 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { getDiagram, saveDiagram, type Diagram } from '@/lib/api/diagrams'
+import { generateSequenceDiagram, getDiagram, saveDiagram, type Diagram } from '@/lib/api/diagrams'
+import { exportXmi } from '@/lib/api/xmi'
 import { ApiError } from '@/lib/api/errors'
 import type { User } from '@/lib/api/types'
 import { CollabSession, type CollabHandlers, type CollabMessage } from '@/lib/collab/collab-client'
@@ -14,6 +15,11 @@ vi.mock('@/lib/api/diagrams', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/api/diagrams')>()),
   getDiagram: vi.fn(),
   saveDiagram: vi.fn(),
+  generateSequenceDiagram: vi.fn(),
+}))
+vi.mock('@/lib/api/xmi', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/api/xmi')>()),
+  exportXmi: vi.fn(),
 }))
 vi.mock('@/lib/collab/collab-client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/collab/collab-client')>()),
@@ -22,6 +28,8 @@ vi.mock('@/lib/collab/collab-client', async (importOriginal) => ({
 
 const get = vi.mocked(getDiagram)
 const save = vi.mocked(saveDiagram)
+const sequence = vi.mocked(generateSequenceDiagram)
+const exportar = vi.mocked(exportXmi)
 
 /** Sesión de colaboración simulada: recoge lo enviado y deja empujar mensajes del servidor. */
 class FakeSession {
@@ -335,5 +343,67 @@ describe('parámetros de un método', () => {
       { name: 'b', type: 'String' },
     ])
     expect(parseParameters('')).toEqual([])
+  })
+})
+
+describe('CU-20 Generar diagrama de secuencia desde clases', () => {
+  beforeEach(() => {
+    signInAsDesigner()
+    get.mockResolvedValue(diagram())
+  })
+  afterEach(() => {
+    useAuthStore.getState().logout()
+    FakeSession.current = null
+    vi.clearAllMocks()
+  })
+
+  it('genera la secuencia y la abre en el visor', async () => {
+    sequence.mockResolvedValue(
+      diagram({ id: 'seq1', type: 'SEQUENCE', sourceDiagramId: 'd1', name: 'Dominio (secuencia)' }),
+    )
+    const { router } = await openEditor()
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: /Secuencia/ }))
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/diagrams/seq1/view'))
+    expect(sequence.mock.calls[0][0]).toBe('d1')
+  })
+
+  it('un fallo de la IA se avisa y el editor sigue en pie', async () => {
+    sequence.mockRejectedValue(
+      new ApiError('AI_UNAVAILABLE', 'El asistente no está disponible en este momento.', 503),
+    )
+    const { router } = await openEditor()
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: /Secuencia/ }))
+
+    await waitFor(() => expect(sequence).toHaveBeenCalled())
+    expect(router.state.location.pathname).toBe('/diagrams/d1')
+    expect(screen.getByText('Cliente')).toBeInTheDocument()
+  })
+})
+
+describe('CU-16 Exportar XMI desde el editor', () => {
+  beforeEach(() => {
+    signInAsDesigner()
+    get.mockResolvedValue(diagram())
+  })
+  afterEach(() => {
+    useAuthStore.getState().logout()
+    FakeSession.current = null
+    vi.clearAllMocks()
+  })
+
+  it('exporta con el nombre del diagrama', async () => {
+    exportar.mockResolvedValue()
+    await openEditor()
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: /XMI/ }))
+
+    await waitFor(() => expect(exportar).toHaveBeenCalled())
+    expect(exportar.mock.calls[0]).toEqual(['d1', 'Dominio'])
   })
 })
