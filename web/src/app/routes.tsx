@@ -1,5 +1,6 @@
 import type { RouteObject } from 'react-router-dom'
 import { HomeRedirect, RedirectIfAuthenticated, RequireAuth, RequireRole } from '@/auth/guards'
+import { AppLayout } from '@/components/layout/AppLayout'
 import { NotFound } from '@/pages/NotFound'
 import { Placeholder } from '@/pages/Placeholder'
 
@@ -22,16 +23,25 @@ export const routes: RouteObject[] = [
     children: [
       { index: true, element: <HomeRedirect /> },
       {
-        element: <RequireRole roles={['SOFTWARE_ADMIN']} />,
-        children: [{ path: '/admin/companies', element: <Placeholder title="Empresas" cu="CU-02" /> }],
-      },
-      {
-        element: <RequireRole roles={['COMPANY_ADMIN']} />,
-        children: [{ path: '/company/users', element: <Placeholder title="Usuarios de la empresa" cu="CU-03" /> }],
-      },
-      {
-        element: <RequireRole roles={['COMPANY_ADMIN', 'DESIGNER', 'DEVELOPER']} />,
-        children: [{ path: '/projects', element: <Placeholder title="Proyectos" cu="CU-04/05" /> }],
+        element: <AppLayout />,
+        children: [
+          {
+            element: <RequireRole roles={['SOFTWARE_ADMIN']} />,
+            children: [{ path: '/admin/companies', element: <Placeholder title="Empresas" cu="CU-02" /> }],
+          },
+          {
+            element: <RequireRole roles={['COMPANY_ADMIN']} />,
+            children: [{ path: '/company/users', element: <Placeholder title="Usuarios de la empresa" cu="CU-03" /> }],
+          },
+          {
+            element: <RequireRole roles={['COMPANY_ADMIN', 'DESIGNER', 'DEVELOPER']} />,
+            children: [{ path: '/projects', element: <Placeholder title="Proyectos" cu="CU-04/05" /> }],
+          },
+          {
+            path: '/notifications',
+            element: <Placeholder title="Notificaciones" cu="CU-19" />,
+          },
+        ],
       },
     ],
   },
