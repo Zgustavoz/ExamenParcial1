@@ -25,5 +25,8 @@ export default defineConfig({
     globals: true,
     setupFiles: './src/test/setup.ts',
     css: false,
+    // Las pruebas montan la aplicación entera y sus rutas diferidas; los 5 s por defecto se quedan cortos
+    // en la primera carga de cada pantalla.
+    testTimeout: 20_000,
   },
 })

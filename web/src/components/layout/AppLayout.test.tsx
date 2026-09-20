@@ -56,7 +56,7 @@ describe('marco de la aplicación', () => {
     const { router } = renderApp('/projects')
     const user = userEvent.setup()
 
-    await user.click(screen.getByRole('button', { name: 'Menú de usuario' }))
+    await user.click(await screen.findByRole('button', { name: 'Menú de usuario' }))
     await user.click(await screen.findByRole('menuitem', { name: 'Cerrar sesión' }))
 
     await waitFor(() => expect(router.state.location.pathname).toBe('/login'))

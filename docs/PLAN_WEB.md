@@ -23,8 +23,8 @@ Referencias: [API.md](API.md) para los contratos, [DECISIONS.md](DECISIONS.md) p
       primer `COMPANY_ADMIN`; error `DUPLICATE_COMPANY`
 - [x] **CU-03 Gestionar usuarios de empresa** (`COMPANY_ADMIN`) — crear, editar y desactivar; roles sin
       `SOFTWARE_ADMIN`; errores `DUPLICATE_USER` y `VALIDATION_ERROR`
-- [ ] **CU-04 Crear proyecto** (`COMPANY_ADMIN`, `DESIGNER`) — error `DUPLICATE_PROJECT`
-- [ ] **CU-05 Consultar proyectos** (todos) — listado paginado con filtro por texto; lista vacía sin error
+- [x] **CU-04 Crear proyecto** (`COMPANY_ADMIN`, `DESIGNER`) — error `DUPLICATE_PROJECT`
+- [x] **CU-05 Consultar proyectos** (todos) — listado paginado con filtro por texto; lista vacía sin error
 - [x] Layout de la aplicación: barra superior, navegación por rol y cierre de sesión
 
 ## F2 — Ciclo C2: diseño de diagramas
