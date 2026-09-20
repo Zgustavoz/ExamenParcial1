@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, LoaderCircle, Pencil } from 'lucide-react'
+import { ArrowLeft, Code2, LoaderCircle, Pencil } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import { DiagramCanvas } from '@/components/diagram/DiagramCanvas'
 import { SequenceView } from '@/components/diagram/SequenceView'
@@ -63,14 +63,24 @@ export default function DiagramViewerPage() {
           {description && <p className="mt-1 text-muted-foreground">{description}</p>}
         </div>
 
-        {isDesigner && type === 'CLASS' && (
-          <Button asChild variant="outline">
-            <Link to={`/diagrams/${diagramId}`}>
-              <Pencil className="size-4" aria-hidden />
-              Editar
-            </Link>
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {type === 'CLASS' && (
+            <Button asChild variant="outline">
+              <Link to={`/diagrams/${diagramId}/code`}>
+                <Code2 className="size-4" aria-hidden />
+                Código
+              </Link>
+            </Button>
+          )}
+          {isDesigner && type === 'CLASS' && (
+            <Button asChild variant="outline">
+              <Link to={`/diagrams/${diagramId}`}>
+                <Pencil className="size-4" aria-hidden />
+                Editar
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       {isClass ? (

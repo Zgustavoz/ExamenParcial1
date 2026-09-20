@@ -67,6 +67,10 @@ export const routes: RouteObject[] = [
                 ],
               },
               {
+                path: '/diagrams/:diagramId/code',
+                lazy: async () => ({ Component: (await import('@/pages/diagrams/CodeGenerationPage')).default }),
+              },
+              {
                 path: '/diagrams/:diagramId/view',
                 lazy: async () => ({ Component: (await import('@/pages/diagrams/DiagramViewerPage')).default }),
               },

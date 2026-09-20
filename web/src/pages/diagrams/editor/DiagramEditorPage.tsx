@@ -1,5 +1,5 @@
 import { ReactFlowProvider, type Connection, type NodeChange } from '@xyflow/react'
-import { ArrowLeft, Bot, Eye, LoaderCircle, Plus, Save, SlidersHorizontal, Users, Wifi, WifiOff } from 'lucide-react'
+import { ArrowLeft, Bot, Code2, Eye, LoaderCircle, Plus, Save, SlidersHorizontal, Users, Wifi, WifiOff } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { DiagramCanvas } from '@/components/diagram/DiagramCanvas'
@@ -115,6 +115,12 @@ export default function DiagramEditorPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link to={`/diagrams/${diagramId}/code`}>
+              <Code2 className="size-4" aria-hidden />
+              Código
+            </Link>
+          </Button>
           <Button variant="outline" size="sm" asChild>
             <Link to={`/diagrams/${diagramId}/view`}>
               <Eye className="size-4" aria-hidden />

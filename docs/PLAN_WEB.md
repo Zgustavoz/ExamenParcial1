@@ -45,8 +45,8 @@ Referencias: [API.md](API.md) para los contratos, [DECISIONS.md](DECISIONS.md) p
 - [x] **CU-12 Generar o modificar diagrama con IA** (`DESIGNER`) — chat con texto y voz (Web Speech API,
       `inputType=VOZ`); el diagrama queda intacto ante `AI_TIMEOUT` y `AI_UNAVAILABLE` (CP-04)
 - [x] **CU-13 Consultar historial de conversación IA** (`DESIGNER`)
-- [ ] **CU-14 Generar código backend** (`DESIGNER`, `DEVELOPER`) — error `DIAGRAM_INCOMPLETE` (CP-06)
-- [ ] **CU-15 Descargar código generado** (`DEVELOPER`) — historial por tarea y descarga del ZIP
+- [x] **CU-14 Generar código backend** (`DESIGNER`, `DEVELOPER`) — error `DIAGRAM_INCOMPLETE` (CP-06)
+- [x] **CU-15 Descargar código generado** (`DEVELOPER`) — historial por tarea y descarga del ZIP
 
 ## F4 — Ciclo C4: integración, colaboración y notificaciones
 
