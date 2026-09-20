@@ -305,6 +305,66 @@ Comprobar: `curl.exe -s http://localhost:8000/health` → `{"status":"ok"}`.
 
 ---
 
+## Desarrollar sin reconstruir imágenes
+
+Reconstruir una imagen en cada cambio es inviable: el backend tarda minutos. Cada servicio tiene su
+camino rápido.
+
+| Qué editas | Cómo verlo al instante |
+|---|---|
+| `web/` (React) | `npm run dev` **fuera** de Docker → recarga en caliente, casi instantánea |
+| `backend/` (Java) | `./mvnw spring-boot:run` **fuera** de Docker → DevTools lo reinicia al recompilar |
+| `ai-service/` (Python) | `docker compose … watch` → el cambio entra en el contenedor y uvicorn recarga solo |
+
+### El flujo recomendado
+
+Infraestructura y `ai-service` en Docker; backend y web en tu máquina:
+
+```powershell
+# 1. Solo lo que no vas a tocar
+docker compose --env-file .env -f infra/docker-compose.yml up -d postgres redis rabbitmq ai-service
+
+# 2. Backend (terminal aparte). Se reinicia solo al guardar y recompilar en el IDE
+cd backend
+$env:JAVA_HOME = "C:\Program Files\Java\jdk-21"
+.\mvnw.cmd spring-boot:run
+
+# 3. Web (otra terminal). Queda en http://localhost:4200 con recarga en caliente
+cd web
+npm run dev
+```
+
+Los valores del `.env` ya apuntan a `localhost` con los puertos correctos, así que no hay que tocar nada.
+En este modo **la aplicación está en el 4200**, no en el 8081.
+
+### Todo dentro de Docker: `docker compose watch`
+
+Si prefieres no salir de Docker:
+
+```powershell
+docker compose --env-file .env -f infra/docker-compose.yml -f infra/docker-compose.dev.yml watch
+```
+
+`watch` copia los archivos que cambian dentro del contenedor en marcha, sin reconstruir la imagen, y solo
+reconstruye cuando cambian las dependencias (`requirements.txt`, `package-lock.json`). Deja el comando
+abierto en su terminal: mientras corre, sincroniza. La aplicación sigue en http://localhost:8081.
+
+Cosas que conviene saber antes de elegir este camino:
+
+- **La primera vez tarda bastante.** El contenedor web instala sus dependencias sobre una carpeta compartida
+  con Windows, y esa instalación es lenta (varios minutos). Después arranca rápido.
+- **El backend en Java no se sincroniza**: `watch` reconstruye su imagen al cambiar el código, que es justo
+  lo que se quiere evitar. Para tocar backend, ejecútalo fuera de Docker.
+- Este modo deja parado el Nginx de producción y sirve la SPA con Vite, que es quien da la recarga en
+  caliente.
+
+Para volver al modo normal (Nginx sirviendo la SPA compilada):
+
+```powershell
+docker compose --env-file .env -f infra/docker-compose.yml -f infra/docker-compose.dev.yml down
+docker compose --env-file .env -f infra/docker-compose.yml up -d
+```
+
 ## Ejecutar las pruebas
 
 ### Backend (107 pruebas)

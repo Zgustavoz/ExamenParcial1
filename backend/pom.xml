@@ -133,6 +133,17 @@
             <optional>true</optional>
         </dependency>
 
+        <!--
+          Reinicia la aplicación sola al recompilar, para no rearrancarla a mano en cada cambio.
+          Spring Boot lo desactiva al ejecutar desde el .jar empaquetado, así que no afecta a producción.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

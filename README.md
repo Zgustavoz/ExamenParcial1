@@ -89,6 +89,7 @@ de qué clase cubre cada una está en [backend/README.md](backend/README.md).
 ## Documentación
 
 - [docs/PUESTA_EN_MARCHA.md](docs/PUESTA_EN_MARCHA.md) — cómo levantar el proyecto, paso a paso.
+- [docs/PRUEBAS_MANUALES.md](docs/PRUEBAS_MANUALES.md) — recorrido para comprobar a mano los casos de uso.
 - [docs/API.md](docs/API.md) — contratos REST, GraphQL y STOMP, con los códigos de error.
 - [docs/DECISIONS.md](docs/DECISIONS.md) — decisiones de diseño y por qué se tomaron.
 - [backend/README.md](backend/README.md) y [ai-service/README.md](ai-service/README.md) — cada servicio.
