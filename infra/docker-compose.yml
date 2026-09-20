@@ -80,10 +80,13 @@ services:
       COLLAB_DISTRIBUTED: "true"
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
       STORAGE_LOCAL_DIR: /app/data/storage
+      # Push por FCM: si existe secrets/fcm.json se activa; si no, las notificaciones solo se guardan en BD.
+      FCM_CREDENTIALS_PATH: /run/secrets/fcm.json
     volumes:
       - backend-storage:/app/data/storage
-      # Credenciales FCM: monta el archivo solo si FCM_CREDENTIALS_PATH apunta a /run/secrets/fcm.json
-      # - ../secrets/fcm.json:/run/secrets/fcm.json:ro
+      # Carpeta (no archivo) de secretos: funciona aunque esté vacía y evita que Docker cree un directorio
+      # falso donde debería ir fcm.json. La carpeta está en .gitignore.
+      - ../secrets:/run/secrets:ro
     ports:
       - "127.0.0.1:8080:8080"
     depends_on:
