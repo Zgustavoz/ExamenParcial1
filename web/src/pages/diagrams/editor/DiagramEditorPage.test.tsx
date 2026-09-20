@@ -221,6 +221,45 @@ describe('CU-07 Editar diagrama manualmente', () => {
     expect(screen.getByText('Cliente')).toBeInTheDocument()
   })
 
+  it('un ELEMENT_LOCKED del servidor llega como error al emisor', async () => {
+    await openEditor()
+
+    FakeSession.current!.handlers.onError(
+      new ApiError('ELEMENT_LOCKED', 'El elemento está siendo editado por otro usuario.', 409),
+    )
+
+    // El diagrama no cambia: el servidor rechazó la operación antes de aplicarla.
+    expect(screen.getByText('Cliente')).toBeInTheDocument()
+    expect(screen.getByText('versión 5')).toBeInTheDocument()
+  })
+
+  it('marca como bloqueada la clase que otro usuario está editando', async () => {
+    await openEditor()
+
+    FakeSession.current!.emit({ type: 'LOCK', elementId: 'c1', userId: 'u9', username: 'otra' })
+
+    expect(await screen.findByText(/otra está editando/)).toBeInTheDocument()
+  })
+
+  it('el bloqueo propio no marca nada: es el que uno mismo tomó', async () => {
+    await openEditor()
+
+    FakeSession.current!.emit({ type: 'LOCK', elementId: 'c1', userId: 'u1', username: 'designer' })
+
+    expect(screen.queryByText(/está editando/)).not.toBeInTheDocument()
+  })
+
+  it('al liberarse el bloqueo la clase vuelve a quedar disponible', async () => {
+    await openEditor()
+
+    FakeSession.current!.emit({ type: 'LOCK', elementId: 'c1', userId: 'u9', username: 'otra' })
+    await screen.findByText(/otra está editando/)
+
+    FakeSession.current!.emit({ type: 'UNLOCK', elementId: 'c1', userId: 'u9', username: 'otra' })
+
+    await waitFor(() => expect(screen.queryByText(/está editando/)).not.toBeInTheDocument())
+  })
+
   it('muestra los participantes que van llegando', async () => {
     await openEditor()
 

@@ -15,7 +15,7 @@ import {
   Wifi,
   WifiOff,
 } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { DiagramCanvas } from '@/components/diagram/DiagramCanvas'
@@ -40,12 +40,33 @@ export default function DiagramEditorPage() {
   const { diagramId = '' } = useParams()
   const navigate = useNavigate()
   const editor = useDiagramEditor(diagramId)
-  const { content, classes, locks, participants, connected, loadError, saving, send, save, reload } = editor
+  const { content, classes, locks, participants, connected, loadError, saving, send, save, reload, lock, unlock } =
+    editor
 
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null)
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
   const [pendingConnection, setPendingConnection] = useState<Connection | null>(null)
   const [panel, setPanel] = useState<'properties' | 'copilot'>('properties')
+
+  const held = useRef<string | null>(null)
+
+  /**
+   * CU-17: al seleccionar una clase se reserva para editarla, y se libera al cambiar de selección o al
+   * salir. Los bloqueos caducan solos a los 30 s, y el servidor los renueva con cada operación.
+   */
+  useEffect(() => {
+    if (held.current === selectedClassId) return
+    if (held.current) unlock(held.current)
+    // No se pide un elemento que ya tiene otra persona: el servidor respondería ELEMENT_LOCKED.
+    held.current = selectedClassId && locks[selectedClassId] === undefined ? selectedClassId : null
+    if (held.current) lock(held.current)
+  }, [selectedClassId, locks, lock, unlock])
+
+  useEffect(() => {
+    return () => {
+      if (held.current) unlock(held.current)
+    }
+  }, [unlock])
 
   const selectedClass = classes.find((c) => c.id === selectedClassId) ?? null
   const selectedEdge = content?.relationships.find((r) => r.id === selectedEdgeId) ?? null
