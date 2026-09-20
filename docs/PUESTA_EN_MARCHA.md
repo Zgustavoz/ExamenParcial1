@@ -1,5 +1,8 @@
 # Puesta en marcha
 
+> ¿Solo quieres probarlo? **[PROBAR_RAPIDO.md](PROBAR_RAPIDO.md)** lo levanta en 5 minutos, con un recorrido
+> por los casos de uso. Esta guía es la larga, con todos los detalles.
+
 Guía paso a paso para levantar el proyecto. Todos los comandos son de **PowerShell en Windows** y están
 probados en este equipo. Hay dos caminos:
 

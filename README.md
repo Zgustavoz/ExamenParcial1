@@ -22,7 +22,8 @@ generación de código backend, importación/exportación XMI y colaboración en
 
 ## Puesta en marcha
 
-Resumen rápido; la guía paso a paso, con solución de problemas, está en
+¿Solo quieres verlo funcionando? **[docs/PROBAR_RAPIDO.md](docs/PROBAR_RAPIDO.md)** lo levanta en 5 minutos
+y trae un recorrido por los casos de uso. La guía paso a paso, con solución de problemas, está en
 **[docs/PUESTA_EN_MARCHA.md](docs/PUESTA_EN_MARCHA.md)**.
 
 Requisitos: Docker (con Compose). Para desarrollar sin contenedores: JDK 21 y Python 3.11+

@@ -110,7 +110,9 @@ services:
       backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost/healthz"]
+      # 127.0.0.1 y no localhost: dentro del contenedor localhost resuelve primero a ::1, y Nginx
+      # solo escucha en IPv4, asi que la comprobacion fallaba siempre.
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
       interval: 15s
       timeout: 5s
       retries: 5
