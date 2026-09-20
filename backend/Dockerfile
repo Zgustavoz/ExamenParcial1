@@ -1,12 +1,12 @@
 # syntax=docker/dockerfile:1
 FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /build
-# Capa de dependencias: se reaprovecha mientras el pom.xml no cambie.
 COPY pom.xml .
-RUN mvn -B -q dependency:go-offline
 COPY src ./src
-# Los tests se ejecutan en CI (necesitan Docker para Testcontainers), no al construir la imagen.
-RUN mvn -B -q clean package -DskipTests
+# La caché del repositorio Maven se reutiliza entre construcciones, así que no hay que volver a
+# descargar las dependencias cada vez. Los tests se ejecutan en CI (necesitan Docker para
+# Testcontainers), no al construir la imagen.
+RUN --mount=type=cache,target=/root/.m2 mvn -B -q clean package -DskipTests
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app

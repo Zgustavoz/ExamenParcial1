@@ -149,16 +149,6 @@ public class DiagramOperationApplier {
         };
     }
 
-    /** Genera un ID corto que no colisiona con ninguno del contenido dado. */
-    public static String newId(JsonNode content) {
-        Set<String> used = collectIds(content);
-        String id;
-        do {
-            id = Json.shortId();
-        } while (used.contains(id));
-        return id;
-    }
-
     // ---------------------------------------------------------------- preparación
 
     private ObjectNode classContentCopy(JsonNode content) {

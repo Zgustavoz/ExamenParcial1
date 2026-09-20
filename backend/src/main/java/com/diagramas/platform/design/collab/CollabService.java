@@ -50,8 +50,9 @@ public class CollabService {
     public void join(AuthPrincipal p, UUID diagramId, String sessionId) {
         requireAnyRole(p, AuthPrincipal.DESIGNER, AuthPrincipal.DEVELOPER);
         diagrams.get(p, diagramId); // 404 si es de otra empresa
-        List<Participant> current = collab.join(diagramId, sessionId, p.userId(), usernameOf(p));
-        broadcast(new CollabMessage(Type.JOIN, diagramId, p.userId(), usernameOf(p), null, null, null, now(), current));
+        String username = usernameOf(p);
+        List<Participant> current = collab.join(diagramId, sessionId, p.userId(), username);
+        broadcast(new CollabMessage(Type.JOIN, diagramId, p.userId(), username, null, null, null, now(), current));
     }
 
     public void leave(AuthPrincipal p, UUID diagramId, String sessionId) {
@@ -62,18 +63,20 @@ public class CollabService {
         requireAnyRole(p, AuthPrincipal.DESIGNER);
         diagrams.get(p, diagramId);
         requireElement(elementId);
-        collab.ensurePresence(diagramId, sessionId, p.userId(), usernameOf(p));
+        String username = usernameOf(p);
+        collab.ensurePresence(diagramId, sessionId, p.userId(), username);
         collab.lock(sessionId, diagramId, elementId, p.userId());
-        broadcast(new CollabMessage(Type.LOCK, diagramId, p.userId(), usernameOf(p), elementId, null, null, now(), null));
+        broadcast(new CollabMessage(Type.LOCK, diagramId, p.userId(), username, elementId, null, null, now(), null));
     }
 
     public void unlock(AuthPrincipal p, UUID diagramId, String elementId, String sessionId) {
         requireAnyRole(p, AuthPrincipal.DESIGNER);
         diagrams.get(p, diagramId);
         requireElement(elementId);
-        collab.ensurePresence(diagramId, sessionId, p.userId(), usernameOf(p));
+        String username = usernameOf(p);
+        collab.ensurePresence(diagramId, sessionId, p.userId(), username);
         collab.unlock(sessionId, diagramId, elementId, p.userId());
-        broadcast(new CollabMessage(Type.UNLOCK, diagramId, p.userId(), usernameOf(p), elementId, null, null, now(), null));
+        broadcast(new CollabMessage(Type.UNLOCK, diagramId, p.userId(), username, elementId, null, null, now(), null));
     }
 
     /**
@@ -82,7 +85,8 @@ public class CollabService {
      */
     public void operate(AuthPrincipal p, UUID diagramId, JsonNode operation, String sessionId) {
         requireAnyRole(p, AuthPrincipal.DESIGNER);
-        collab.ensurePresence(diagramId, sessionId, p.userId(), usernameOf(p));
+        String username = usernameOf(p);
+        collab.ensurePresence(diagramId, sessionId, p.userId(), username);
         JsonNode prepared = diagrams.validateOperation(p, diagramId, operation);
         String elementId = applier.elementIdOf(prepared);
         boolean acquired = collab.lock(sessionId, diagramId, elementId, p.userId());
@@ -95,7 +99,7 @@ public class CollabService {
             }
         }
         collab.touch(diagramId);
-        broadcast(new CollabMessage(Type.OP, diagramId, p.userId(), usernameOf(p), elementId,
+        broadcast(new CollabMessage(Type.OP, diagramId, p.userId(), username, elementId,
                 result.operation(), result.diagram().getVersion(), now(), null));
     }
 

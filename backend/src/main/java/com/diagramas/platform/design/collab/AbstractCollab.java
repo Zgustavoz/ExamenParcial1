@@ -3,7 +3,6 @@ package com.diagramas.platform.design.collab;
 import com.diagramas.platform.common.error.ApiException;
 import com.diagramas.platform.common.error.ErrorCode;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -146,10 +145,5 @@ abstract class AbstractCollab implements CollabPort {
         if (locks != null) {
             locks.remove(new LockRef(diagramId, elementId, userId));
         }
-    }
-
-    /** Sesiones unidas (uso interno / pruebas). */
-    Set<String> sessionIds() {
-        return new LinkedHashSet<>(sessions.keySet());
     }
 }
