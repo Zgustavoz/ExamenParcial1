@@ -40,6 +40,7 @@ Usuarios de prueba (contraseña = `SEED_ADMIN_PASSWORD` del `.env`): `platform/a
 | `npm run build` | comprueba tipos y genera `dist/` |
 | `npm test` | ejecuta las pruebas una vez (`npm run test:watch` para modo interactivo) |
 | `npm run lint` | oxlint |
+| `npm run e2e` | CP-01 y CP-02 con Playwright contra el sistema desplegado |
 
 ## Casos de uso cubiertos
 
@@ -83,6 +84,20 @@ operaciones de la sección 7.3 y se envía por WebSocket a `/app/diagram/{id}/op
 `DiagramOperationApplier`, la aplica, incrementa `version` y la difunde. El cliente refleja lo que vuelve
 (D-29). Si la versión recibida no es la siguiente a la local, se recarga el diagrama entero en lugar de
 arriesgar una divergencia (D-30).
+
+## Pruebas de aceptación (CP-01 y CP-02)
+
+Se ejecutan como caja negra sobre el entorno desplegado, igual que en el documento. Necesitan el stack
+levantado y la contraseña de los usuarios de ejemplo:
+
+```powershell
+docker compose --env-file ..\.env -f ..\infra\docker-compose.yml up -d --build
+$env:E2E_PASSWORD = (Select-String -Path ..\.env -Pattern "^SEED_ADMIN_PASSWORD=").Line.Split('=')[1]
+npm run e2e
+```
+
+`CORS_ALLOWED_ORIGINS` tiene que incluir `http://localhost:8081`: el navegador envía la cabecera `Origin`
+también en peticiones del mismo origen, y sin ese valor el backend responde `403`.
 
 ## Convenciones
 

@@ -12,7 +12,12 @@ export interface UmlNodeData extends Record<string, unknown> {
 
 export type UmlNode = Node<UmlNodeData, 'umlClass'>
 
-/** Los cuatro lados sirven de origen y de destino, para conectar por donde quede más natural. */
+/**
+ * Un punto de conexión por lado, para enlazar por donde quede más natural. Hay uno solo, no uno de origen y
+ * otro de destino: si se apilan dos en la misma posición, el de arriba intercepta el puntero y no se puede
+ * soltar la conexión sobre el de abajo. El lienzo usa `ConnectionMode.Loose`, que permite empezar y terminar
+ * en cualquiera de ellos.
+ */
 const SIDES = [
   { position: Position.Top, id: 'top' },
   { position: Position.Right, id: 'right' },
@@ -35,10 +40,7 @@ function UmlClassNodeComponent({ data, selected }: NodeProps<UmlNode>) {
       )}
     >
       {SIDES.map(({ position, id }) => (
-        <div key={id}>
-          <Handle type="target" position={position} id={`${id}-t`} className="!size-2 !border-0 !bg-primary/60" />
-          <Handle type="source" position={position} id={`${id}-s`} className="!size-2 !border-0 !bg-primary/60" />
-        </div>
+        <Handle key={id} type="source" position={position} id={id} className="!size-2.5 !border-0 !bg-primary/60" />
       ))}
 
       <header className="border-b bg-secondary/60 px-3 py-2 text-center">

@@ -1,5 +1,6 @@
 import {
   Background,
+  ConnectionMode,
   Controls,
   MiniMap,
   ReactFlow,
@@ -71,6 +72,8 @@ export function DiagramCanvas({
         onNodesChange={onNodesChange}
         onConnect={onConnect}
         onSelectionChange={onSelectionChange}
+        // Con un solo punto de conexión por lado, el modo flexible deja empezar y terminar en cualquiera.
+        connectionMode={ConnectionMode.Loose}
         nodesDraggable={editable}
         nodesConnectable={editable}
         elementsSelectable

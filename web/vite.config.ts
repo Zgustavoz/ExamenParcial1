@@ -24,6 +24,8 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/test/setup.ts',
+    // Las pruebas de extremo a extremo las ejecuta Playwright, no Vitest.
+    exclude: ['e2e/**', 'node_modules/**', 'dist/**'],
     css: false,
     // Las pruebas montan la aplicación entera y sus rutas diferidas; los 5 s por defecto se quedan cortos
     // en la primera carga de cada pantalla.

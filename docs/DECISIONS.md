@@ -153,3 +153,18 @@ ejemplo, no trae `visibility`, `stereotype` ni `methods`. El reductor local los 
 criterios (clases `PUBLIC`, atributos `PRIVATE`, métodos `PUBLIC` y `void`) para que el estado local quede
 idéntico al del servidor. Si además se pierde algún mensaje intermedio —la versión recibida no es la
 siguiente a la local— se recarga el diagrama entero en lugar de arriesgar una divergencia.
+
+### D-31 — Un solo punto de conexión por lado en el nodo de clase
+
+El nodo tenía un punto de origen y otro de destino apilados en cada lado. Al estar en la misma posición, el
+de arriba intercepta el puntero y la conexión no se puede soltar sobre el de abajo: arrastrar de una clase a
+otra no funcionaba. Ahora hay **un solo punto por lado** y el lienzo usa `ConnectionMode.Loose`, que permite
+empezar y terminar en cualquiera de ellos. Lo destapó la prueba de aceptación CP-01, que no pasaba de la
+primera conexión.
+
+### D-32 — `CORS_ALLOWED_ORIGINS` incluye el origen de la SPA servida por Nginx
+
+El navegador envía la cabecera `Origin` también en peticiones del mismo origen cuando no son `GET` ni
+`HEAD`. Con la SPA servida en `http://localhost:8081` y solo `http://localhost:4200` en la lista, el backend
+respondía `403` a todo `POST`, incluido el login: la aplicación era inusable en el despliegue con Docker,
+aunque `curl` funcionara. La plantilla `.env.example` incluye ahora ambos orígenes.
