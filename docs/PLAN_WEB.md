@@ -21,7 +21,7 @@ Referencias: [API.md](API.md) para los contratos, [DECISIONS.md](DECISIONS.md) p
       `INVALID_CREDENTIALS`, `USER_INACTIVE`, `COMPANY_DISABLED`
 - [x] **CU-02 Gestionar empresas** (`SOFTWARE_ADMIN`) — listar, crear, editar, activar/desactivar y crear el
       primer `COMPANY_ADMIN`; error `DUPLICATE_COMPANY`
-- [ ] **CU-03 Gestionar usuarios de empresa** (`COMPANY_ADMIN`) — crear, editar y desactivar; roles sin
+- [x] **CU-03 Gestionar usuarios de empresa** (`COMPANY_ADMIN`) — crear, editar y desactivar; roles sin
       `SOFTWARE_ADMIN`; errores `DUPLICATE_USER` y `VALIDATION_ERROR`
 - [ ] **CU-04 Crear proyecto** (`COMPANY_ADMIN`, `DESIGNER`) — error `DUPLICATE_PROJECT`
 - [ ] **CU-05 Consultar proyectos** (todos) — listado paginado con filtro por texto; lista vacía sin error

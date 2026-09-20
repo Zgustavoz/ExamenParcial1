@@ -36,7 +36,12 @@ export const routes: RouteObject[] = [
           },
           {
             element: <RequireRole roles={['COMPANY_ADMIN']} />,
-            children: [{ path: '/company/users', element: <Placeholder title="Usuarios de la empresa" cu="CU-03" /> }],
+            children: [
+              {
+                path: '/company/users',
+                lazy: async () => ({ Component: (await import('@/pages/company/UsersPage')).default }),
+              },
+            ],
           },
           {
             element: <RequireRole roles={['COMPANY_ADMIN', 'DESIGNER', 'DEVELOPER']} />,
