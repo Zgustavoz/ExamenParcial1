@@ -21,7 +21,11 @@ generación de código backend, importación/exportación XMI y colaboración en
 
 ## Puesta en marcha
 
-Requisitos: Docker (con Compose). Para desarrollar sin contenedores: JDK 21, Maven 3.9+ y Python 3.11+.
+Resumen rápido; la guía paso a paso, con solución de problemas, está en
+**[docs/PUESTA_EN_MARCHA.md](docs/PUESTA_EN_MARCHA.md)**.
+
+Requisitos: Docker (con Compose). Para desarrollar sin contenedores: JDK 21 y Python 3.11+
+(Maven no hace falta: el proyecto incluye `backend/mvnw`).
 
 ```bash
 cp .env.example .env     # Windows: copy .env.example .env
@@ -58,14 +62,14 @@ En perfil `dev` existe además la empresa `demo` con un usuario por rol (`compan
 ## Desarrollo
 
 ```bash
-cd backend      && mvn spring-boot:run       # necesita PostgreSQL; con COLLAB_DISTRIBUTED=false no usa Redis/RabbitMQ
+cd backend      && ./mvnw spring-boot:run    # necesita PostgreSQL; con COLLAB_DISTRIBUTED=false no usa Redis/RabbitMQ
 cd ai-service   && uvicorn app.main:app --reload --port 8000
 ```
 
 ## Pruebas
 
 ```bash
-cd backend    && mvn test     # unitarias + integración (Testcontainers: requiere Docker en ejecución)
+cd backend    && ./mvnw test  # 107 pruebas, unitarias + integración (Testcontainers: requiere Docker)
 cd ai-service && pytest       # 52 pruebas, sin llamadas reales a ningún LLM
 ```
 
@@ -82,6 +86,7 @@ de qué clase cubre cada una está en [backend/README.md](backend/README.md).
 
 ## Documentación
 
+- [docs/PUESTA_EN_MARCHA.md](docs/PUESTA_EN_MARCHA.md) — cómo levantar el proyecto, paso a paso.
 - [docs/API.md](docs/API.md) — contratos REST, GraphQL y STOMP, con los códigos de error.
 - [docs/DECISIONS.md](docs/DECISIONS.md) — decisiones de diseño y por qué se tomaron.
 - [backend/README.md](backend/README.md) y [ai-service/README.md](ai-service/README.md) — cada servicio.

@@ -5,8 +5,8 @@ tareas y código) y **WebSocket/STOMP** (edición colaborativa), según el repar
 
 ## Requisitos
 
-- JDK 21
-- Maven 3.9+
+- JDK 21 (en este equipo `JAVA_HOME` apunta a `jdk-17`: fíjalo a `jdk-21`)
+- Maven **no** hace falta instalarlo: usa el wrapper incluido (`./mvnw`, `mvnw.cmd` en Windows)
 - PostgreSQL 16 (o Docker, ver `infra/`)
 - Docker en ejecución para los tests (Testcontainers levanta PostgreSQL y Redis reales)
 
@@ -21,10 +21,10 @@ Perfiles: `dev` (por defecto; crea además una empresa demo), `test`, `prod`.
 ## Compilar, ejecutar y probar
 
 ```bash
-mvn clean package                      # compila y empaqueta
-mvn spring-boot:run                    # arranca en http://localhost:8080
-mvn test                               # toda la suite (unitarias + integración)
-mvn test -Dtest=DiagramOperationApplierTest   # una sola clase
+./mvnw clean package                   # compila y empaqueta
+./mvnw spring-boot:run                 # arranca en http://localhost:8080
+./mvnw test                            # toda la suite: 107 pruebas
+./mvnw test -Dtest=DiagramOperationApplierTest   # una sola clase
 ```
 
 Con la infraestructura de `infra/docker-compose.yml` levantada, el backend arranca contra ella sin más
