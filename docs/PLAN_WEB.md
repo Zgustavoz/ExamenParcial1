@@ -30,7 +30,7 @@ Referencias: [API.md](API.md) para los contratos, [DECISIONS.md](DECISIONS.md) p
 ## F2 — Ciclo C2: diseño de diagramas
 
 - [x] **CU-06 Crear diagrama de clases** (`DESIGNER`) — error `DUPLICATE_DIAGRAM`
-- [ ] **CU-11 Consultar diagrama** (todos) — visor de solo lectura con zoom, clases y secuencia
+- [x] **CU-11 Consultar diagrama** (todos) — visor de solo lectura con zoom, clases y secuencia
 - [ ] **CU-07 Editar diagrama manualmente** (`DESIGNER`) — lienzo React Flow, paleta, arrastrar y soltar,
       autoguardado con *debounce* (CP-02); errores `OUT_OF_BOUNDS` y `DUPLICATE_RELATIONSHIP` (CP-01)
 - [ ] **CU-08 Gestionar clases, atributos y métodos** (`DESIGNER`) — panel de propiedades; errores
