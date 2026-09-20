@@ -1,5 +1,5 @@
 import { ReactFlowProvider, type Connection, type NodeChange } from '@xyflow/react'
-import { ArrowLeft, Eye, LoaderCircle, Plus, Save, Users, Wifi, WifiOff } from 'lucide-react'
+import { ArrowLeft, Bot, Eye, LoaderCircle, Plus, Save, SlidersHorizontal, Users, Wifi, WifiOff } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { DiagramCanvas } from '@/components/diagram/DiagramCanvas'
@@ -9,7 +9,9 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { NewRelationship } from '@/lib/diagram/operations'
 import { clampToCanvas } from '@/lib/diagram/types'
+import { cn } from '@/lib/utils'
 import { ClassPropertiesPanel } from './ClassPropertiesPanel'
+import { CopilotPanel } from './CopilotPanel'
 import { NewRelationshipDialog } from './NewRelationshipDialog'
 import { RelationshipPanel } from './RelationshipPanel'
 import { useDiagramEditor } from './use-diagram-editor'
@@ -18,11 +20,12 @@ import { useDiagramEditor } from './use-diagram-editor'
 export default function DiagramEditorPage() {
   const { diagramId = '' } = useParams()
   const editor = useDiagramEditor(diagramId)
-  const { content, classes, locks, participants, connected, loadError, saving, send, save } = editor
+  const { content, classes, locks, participants, connected, loadError, saving, send, save, reload } = editor
 
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null)
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
   const [pendingConnection, setPendingConnection] = useState<Connection | null>(null)
+  const [panel, setPanel] = useState<'properties' | 'copilot'>('properties')
 
   const selectedClass = classes.find((c) => c.id === selectedClassId) ?? null
   const selectedEdge = content?.relationships.find((r) => r.id === selectedEdgeId) ?? null
@@ -154,8 +157,32 @@ export default function DiagramEditorPage() {
           </div>
         </div>
 
-        <aside className="h-[70vh] overflow-y-auto rounded-xl border bg-card p-4">
-          {selectedClass ? (
+        <aside className="flex h-[70vh] flex-col rounded-xl border bg-card">
+          <div className="flex gap-1 border-b p-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              className={cn('flex-1', panel === 'properties' && 'bg-accent text-accent-foreground')}
+              onClick={() => setPanel('properties')}
+            >
+              <SlidersHorizontal className="size-4" aria-hidden />
+              Propiedades
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className={cn('flex-1', panel === 'copilot' && 'bg-accent text-accent-foreground')}
+              onClick={() => setPanel('copilot')}
+            >
+              <Bot className="size-4" aria-hidden />
+              Asistente
+            </Button>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto p-4">
+          {panel === 'copilot' ? (
+            <CopilotPanel diagramId={diagramId} onApplied={() => void reload()} />
+          ) : selectedClass ? (
             <>
               <h2 className="mb-4 font-medium">Clase</h2>
               {lockedBySomeoneElse && (
@@ -180,6 +207,7 @@ export default function DiagramEditorPage() {
               Seleccione una clase o una relación para ver sus propiedades.
             </p>
           )}
+          </div>
         </aside>
       </div>
 
