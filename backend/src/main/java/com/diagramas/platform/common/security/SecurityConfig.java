@@ -34,7 +34,12 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(a -> a
-                        .requestMatchers("/api/auth/login", "/actuator/health", "/actuator/health/**", "/error")
+                        .requestMatchers(
+                                "/api/auth/login",
+                                "/api/auth/register-company",
+                                "/actuator/health",
+                                "/actuator/health/**",
+                                "/error")
                         .permitAll()
                         // El handshake WebSocket es público; el JWT se valida en el CONNECT de STOMP.
                         .requestMatchers("/ws", "/ws/**")

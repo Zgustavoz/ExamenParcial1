@@ -2,6 +2,7 @@ package com.diagramas.platform.access.dto;
 
 import com.diagramas.platform.access.domain.Company;
 import com.diagramas.platform.access.domain.User;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -55,6 +56,28 @@ public final class AccessDtos {
                     String slug) {}
 
     public record StatusRequest(@NotNull(message = "El estado es obligatorio") Boolean active) {}
+
+    /** CU-22 Registrar empresa: alta pública de una empresa junto con su primer administrador. */
+    public record RegisterCompanyRequest(
+            @NotBlank(message = "El nombre de la empresa es obligatorio")
+                    @Size(max = 100, message = "Máximo 100 caracteres")
+                    String companyName,
+            @NotBlank(message = "El identificador de la empresa es obligatorio")
+                    @Size(max = 50, message = "Máximo 50 caracteres")
+                    @Pattern(regexp = "^[a-z0-9]+(-[a-z0-9]+)*$", message = "Use minúsculas, números y guiones")
+                    String companySlug,
+            @NotNull(message = "Los datos del administrador son obligatorios") @Valid AdminAccount admin) {}
+
+    public record AdminAccount(
+            @Size(max = 100, message = "Máximo 100 caracteres") String fullName,
+            @NotBlank(message = "El usuario es obligatorio") @Size(max = 50, message = "Máximo 50 caracteres") String username,
+            @NotBlank(message = "El correo es obligatorio")
+                    @Email(message = "Correo inválido")
+                    @Size(max = 100, message = "Máximo 100 caracteres")
+                    String email,
+            @NotBlank(message = "La contraseña es obligatoria")
+                    @Size(min = 8, max = 100, message = "La contraseña debe tener al menos 8 caracteres")
+                    String password) {}
 
     /** Alta de administrador de empresa (CU-02). */
     public record AdminRequest(

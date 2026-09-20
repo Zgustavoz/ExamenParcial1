@@ -2,6 +2,7 @@ package com.diagramas.platform.access.web;
 
 import com.diagramas.platform.access.dto.AccessDtos.LoginRequest;
 import com.diagramas.platform.access.dto.AccessDtos.LoginResponse;
+import com.diagramas.platform.access.dto.AccessDtos.RegisterCompanyRequest;
 import com.diagramas.platform.access.dto.AccessDtos.UserDto;
 import com.diagramas.platform.access.service.AuthService;
 import com.diagramas.platform.common.security.CurrentUser;
@@ -25,6 +26,12 @@ public class AuthController {
     @PostMapping("/login")
     public LoginResponse login(@Valid @RequestBody LoginRequest req) {
         return auth.login(req.companySlug(), req.username(), req.password());
+    }
+
+    /** CU-22: alta pública de una empresa; devuelve la sesión ya iniciada. */
+    @PostMapping("/register-company")
+    public LoginResponse registerCompany(@Valid @RequestBody RegisterCompanyRequest req) {
+        return auth.registerCompany(req);
     }
 
     @GetMapping("/me")
