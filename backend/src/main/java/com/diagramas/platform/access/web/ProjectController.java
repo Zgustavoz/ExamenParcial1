@@ -42,4 +42,17 @@ public class ProjectController {
     public ProjectDto get(@PathVariable UUID id) {
         return projects.get(CurrentUser.get(), id);
     }
+
+    /** CU-23: el administrador de la empresa o el propietario del proyecto. */
+    @PutMapping("/{id}")
+    public ProjectDto update(@PathVariable UUID id, @Valid @RequestBody ProjectRequest req) {
+        return projects.update(CurrentUser.get(), id, req);
+    }
+
+    /** CU-23: borra también sus diagramas, tareas, código generado y conversaciones con el asistente. */
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable UUID id) {
+        projects.delete(CurrentUser.get(), id);
+    }
 }

@@ -14,19 +14,32 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { createProject } from '@/lib/api/projects'
+import { createProject, updateProject, type Project } from '@/lib/api/projects'
 
-/** CU-04 Crear proyecto. El nombre no puede repetirse en la empresa (`DUPLICATE_PROJECT`). */
-export function ProjectFormDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+interface Props {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  /** Si viene un proyecto se edita (CU-23); si no, se crea uno nuevo (CU-04). */
+  project?: Project
+}
+
+/**
+ * CU-04 Crear proyecto y CU-23 Editar proyecto. El nombre no puede repetirse dentro de la empresa
+ * (`DUPLICATE_PROJECT`), salvo el del propio proyecto que se está editando.
+ */
+export function ProjectFormDialog({ open, onOpenChange, project }: Props) {
   const queryClient = useQueryClient()
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
+  const editing = project !== undefined
+  const [name, setName] = useState(project?.name ?? '')
+  const [description, setDescription] = useState(project?.description ?? '')
 
   const mutation = useMutation({
-    mutationFn: createProject,
-    onSuccess: async (project) => {
+    mutationFn: (body: { name: string; description: string }) =>
+      editing ? updateProject(project.id, body) : createProject(body),
+    onSuccess: async (saved) => {
       await queryClient.invalidateQueries({ queryKey: ['projects'] })
-      toast.success(`Proyecto «${project.name}» creado.`)
+      await queryClient.invalidateQueries({ queryKey: ['project', saved.id] })
+      toast.success(editing ? `Proyecto «${saved.name}» actualizado.` : `Proyecto «${saved.name}» creado.`)
       onOpenChange(false)
     },
   })
@@ -40,7 +53,7 @@ export function ProjectFormDialog({ open, onOpenChange }: { open: boolean; onOpe
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Nuevo proyecto</DialogTitle>
+          <DialogTitle>{editing ? 'Editar proyecto' : 'Nuevo proyecto'}</DialogTitle>
           <DialogDescription>Agrupa los diagramas de un mismo trabajo.</DialogDescription>
         </DialogHeader>
 
@@ -78,7 +91,7 @@ export function ProjectFormDialog({ open, onOpenChange }: { open: boolean; onOpe
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
               {mutation.isPending && <LoaderCircle className="size-4 animate-spin" aria-hidden />}
-              Crear
+              {editing ? 'Guardar' : 'Crear'}
             </Button>
           </DialogFooter>
         </form>

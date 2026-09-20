@@ -63,6 +63,44 @@ public class ProjectService {
         return toDto(project, ownerNames(List.of(project)));
     }
 
+    /**
+     * CU-23 Editar proyecto. Solo el administrador de la empresa o el propietario del proyecto.
+     */
+    @Transactional
+    public ProjectDto update(AuthPrincipal p, UUID id, ProjectRequest req) {
+        Project project = find(p, id);
+        assertCanManage(p, project);
+        String name = req.name().trim();
+        // El propio proyecto no cuenta como duplicado de sí mismo.
+        if (!project.getName().equalsIgnoreCase(name)
+                && projects.existsByCompanyIdAndNameIgnoreCase(p.companyId(), name)) {
+            throw new ApiException(ErrorCode.DUPLICATE_PROJECT, "Ya existe un proyecto con ese nombre en la empresa.");
+        }
+        project.setName(name);
+        project.setDescription(req.description());
+        Project saved = projects.saveAndFlush(project);
+        return toDto(saved, ownerNames(List.of(saved)));
+    }
+
+    /**
+     * CU-23 Eliminar proyecto. Las claves foráneas en cascada se llevan por delante sus diagramas y, con
+     * ellos, sus tareas, el código generado y las conversaciones con el asistente: no quedan huérfanos.
+     */
+    @Transactional
+    public void delete(AuthPrincipal p, UUID id) {
+        Project project = find(p, id);
+        assertCanManage(p, project);
+        projects.delete(project);
+    }
+
+    /** Administrar un proyecto es cosa del administrador de la empresa o de quien lo creó. */
+    private static void assertCanManage(AuthPrincipal p, Project project) {
+        if (!p.hasRole(AuthPrincipal.COMPANY_ADMIN) && !p.userId().equals(project.getOwnerId())) {
+            throw new ApiException(
+                    ErrorCode.FORBIDDEN, "Solo el administrador de la empresa o el propietario pueden modificar el proyecto.");
+        }
+    }
+
     /** Uso interno de otros módulos: valida que el proyecto pertenezca a la empresa del JWT. */
     @Transactional(readOnly = true)
     public Project find(AuthPrincipal p, UUID id) {

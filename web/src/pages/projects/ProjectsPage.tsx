@@ -11,6 +11,7 @@ import { listProjects } from '@/lib/api/projects'
 import { formatDate } from '@/lib/format'
 import { useDebounced } from '@/lib/use-debounced'
 import { hasAnyRole, useAuthStore } from '@/stores/auth-store'
+import { ProjectActions } from './ProjectActions'
 import { ProjectFormDialog } from './ProjectFormDialog'
 
 /** CU-05 Consultar proyectos y CU-04 Crear proyecto. */
@@ -77,12 +78,13 @@ export default function ProjectsPage() {
             {data.content.map((project) => (
               <li key={project.id}>
                 <Card className="h-full transition-shadow hover:shadow-md">
-                  <CardHeader>
+                  <CardHeader className="flex-row items-start justify-between gap-2">
                     <CardTitle>
                       <Link to={`/projects/${project.id}`} className="hover:underline">
                         {project.name}
                       </Link>
                     </CardTitle>
+                    <ProjectActions project={project} />
                   </CardHeader>
                   <CardContent className="grid gap-3">
                     <p className="line-clamp-3 text-muted-foreground">{project.description || 'Sin descripción.'}</p>
