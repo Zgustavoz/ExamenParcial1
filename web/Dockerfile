@@ -22,6 +22,11 @@ ENV VITE_FIREBASE_API_KEY=$VITE_FIREBASE_API_KEY     VITE_FIREBASE_AUTH_DOMAIN=$
 RUN npm run build
 
 FROM nginx:1.27-alpine AS runtime
+# La configuración va dentro de la imagen: la imagen que se prueba es la misma que se despliega. `app.conf` tiene
+# lo común (cabeceras, SPA, proxy del backend); `default.conf` es el servidor HTTP que la incluye.
+COPY nginx/app.conf /etc/nginx/snippets/app.conf
+COPY nginx/default.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
-# La configuración (proxy de /api, /graphql y /ws) llega montada desde infra/nginx.
 EXPOSE 80
+# 127.0.0.1 y no localhost: dentro del contenedor localhost resuelve primero a ::1 y Nginx solo escucha en IPv4.
+HEALTHCHECK --interval=15s --timeout=5s --retries=5     CMD wget -qO- http://127.0.0.1/healthz || exit 1
