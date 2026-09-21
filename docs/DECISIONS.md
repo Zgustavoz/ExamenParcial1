@@ -242,3 +242,16 @@ Limitaciones asumidas:
   sesión ya abierta, y conserva lo pendiente si la app se cierra.
 - **El dictado depende del dispositivo.** El reconocimiento de voz de Android puede necesitar internet; sin
   él, se puede escribir la orden y se guarda igual.
+
+### D-37 — El generador no serializa el extremo inverso de las relaciones
+
+El generador crea cada relación en los dos sentidos (`@OneToMany(mappedBy…)` y `@ManyToOne`) y el controlador
+devuelve la entidad tal cual. Con datos enlazados, un cliente contenía a sus pedidos, cada pedido a su cliente,
+y así sin fin: Jackson cortaba con «Document nesting depth exceeds the maximum» y `GET /api/clientes` llegaba
+como JSON truncado con HTTP 200. Se vio al arrancar el backend generado del diagrama «Tienda en línea» y
+enlazar un pedido con un cliente; con registros sueltos (lo que hace el móvil) no ocurría.
+
+Ahora el extremo inverso (`mappedBy`) lleva `@JsonIgnore`, de modo que cada relación se serializa por un solo
+lado: se ve `pedido.cliente` y `pedido.productos`, y se crean desde ahí. Contrapartida: `cliente.pedidos` no
+aparece en `GET /api/clientes`; se consulta en `GET /api/pedidos`. Se descartó `@JsonIgnoreProperties`: con tres
+o más entidades sigue habiendo ciclos (cliente → pedidos → productos → pedidos → cliente…).

@@ -246,8 +246,16 @@ public class JavaSpringBootGenerator implements CodeGenerator {
         }
     }
 
+    /**
+     * El extremo inverso de una relación (`mappedBy`) no se serializa a JSON: sale del otro extremo. Si se
+     * serializara, un cliente contendría sus pedidos, cada pedido a su cliente, y así sin fin: la respuesta de
+     * la API llegaba truncada en cuanto había datos enlazados.
+     */
     private static Field field(String annotation, String type, String name) {
-        return new Field(List.of(annotation), "private", type, name, false);
+        List<String> annotations = annotation.contains("mappedBy")
+                ? List.of(annotation, "@JsonIgnore")
+                : List.of(annotation);
+        return new Field(annotations, "private", type, name, false);
     }
 
     private static String roleOrDefault(String role, Cls other, boolean many) {
@@ -269,6 +277,7 @@ public class JavaSpringBootGenerator implements CodeGenerator {
     private String render(Cls cls, Map<String, String> javaNames) {
         StringBuilder sb = new StringBuilder();
         sb.append("package ").append(basePackage).append(".model;\n\n");
+        sb.append("import com.fasterxml.jackson.annotation.JsonIgnore;\n");
         sb.append("import jakarta.persistence.CascadeType;\n");
         sb.append("import jakarta.persistence.ElementCollection;\n");
         sb.append("import jakarta.persistence.Entity;\n");

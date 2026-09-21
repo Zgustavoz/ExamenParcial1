@@ -234,3 +234,22 @@ Entre, elija el diagrama, pulse el micrófono y diga:
 | «No se pudo contactar con el backend generado» | La app generada no está en marcha, o no está en `http://localhost:8090`. Ajuste `GENERATED_APP_URL` en el `.env`. |
 | «No entendí la orden» | Nombre la entidad y algún campo tal como están en el diagrama: «registra un cliente con nombre Ana». |
 | El móvil no llega a la plataforma | En emulador use `10.0.2.2`; en un móvil físico, la IP del PC en la wifi. |
+
+## Diagrama de ejemplo: «Tienda en línea»
+
+Para probar de punta a punta hay un diagrama ya armado: **Cliente, Pedido, Producto y Pago**, con atributos,
+métodos y tres relaciones (asociación 1:*, muchos a muchos y composición). En el equipo donde se preparó ya está creado
+en el proyecto **«Tienda en línea (pruebas)»** de la empresa `demo` (usuario `designer`). Su contenido está en
+`backend/src/test/resources/diagramas/tienda-en-linea.json`, que también usan las pruebas automáticas.
+
+1. Como `designer`, abra el diagrama y pulse **Secuencia**: el asistente propone el flujo cliente → pedido →
+   producto (`hayStock`, `descontarStock`) → pago (`procesar`) → `confirmar`.
+2. Pulse **Código** → **Generar código**. Como `developer`, descargue el ZIP y ejecútelo (`mvn spring-boot:run`,
+   queda en `:8090`).
+3. Desde el móvil, dicte: «registra un cliente con nombre Juan Pérez y email juan@ejemplo.com», «crea un producto
+   con nombre Teclado y precio 150 y stock 10», «crea un pedido con total 150 y estado PENDIENTE», «registra un
+   pago con monto 150 y metodo tarjeta», «lista los clientes».
+4. Compruebe en Postman: `GET http://localhost:8090/api/clientes` (y `/productos`, `/pedidos`, `/pagos`).
+
+Un pedido se enlaza con un cliente y productos desde Postman: `POST /api/pedidos` con
+`{"total":300,"estado":"CONFIRMADO","cliente":{"id":"…"},"productos":[{"id":"…"}]}`.
