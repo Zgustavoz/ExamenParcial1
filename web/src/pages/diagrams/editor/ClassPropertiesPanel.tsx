@@ -4,11 +4,20 @@ import { ConfirmButton } from '@/components/ConfirmButton'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { formatParameters, parseParameters } from '@/lib/diagram/parameters'
 import type { DiagramOperation } from '@/lib/diagram/operations'
 import {
+  DATA_TYPES,
   STEREOTYPES,
   VISIBILITIES,
   VISIBILITY_LABEL,
@@ -22,6 +31,8 @@ interface Props {
   uml: UmlClass
   readOnly: boolean
   send: (operation: DiagramOperation) => boolean
+  /** Nombres de las demás clases del diagrama: también valen como tipo de un atributo. */
+  otherClassNames?: string[]
 }
 
 const STEREOTYPE_LABEL: Record<Stereotype, string> = {
@@ -32,8 +43,61 @@ const STEREOTYPE_LABEL: Record<Stereotype, string> = {
 
 const NONE = '__none__'
 
+/**
+ * Lista de tipos para un atributo. Un valor que ya está guardado pero no figura en la lista (por ejemplo
+ * `List<String>`, que puede venir del Copilot) se conserva como opción para no perderlo al mostrarlo.
+ */
+function AttributeTypeSelect({
+  attributeName,
+  value,
+  classNames,
+  disabled,
+  onChange,
+}: {
+  attributeName: string
+  value: string
+  classNames: string[]
+  disabled: boolean
+  onChange: (type: string) => void
+}) {
+  const known = (DATA_TYPES as readonly string[]).includes(value) || classNames.includes(value)
+  return (
+    <Select value={value} disabled={disabled} onValueChange={(type) => type !== value && onChange(type)}>
+      <SelectTrigger aria-label={`Tipo del atributo ${attributeName}`} className="w-36 shrink-0">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectGroup>
+          <SelectLabel>Tipos básicos</SelectLabel>
+          {DATA_TYPES.map((type) => (
+            <SelectItem key={type} value={type}>
+              {type}
+            </SelectItem>
+          ))}
+        </SelectGroup>
+        {classNames.length > 0 && (
+          <SelectGroup>
+            <SelectLabel>Clases del diagrama</SelectLabel>
+            {classNames.map((name) => (
+              <SelectItem key={name} value={name}>
+                {name}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        )}
+        {!known && (
+          <SelectGroup>
+            <SelectLabel>Actual</SelectLabel>
+            <SelectItem value={value}>{value}</SelectItem>
+          </SelectGroup>
+        )}
+      </SelectContent>
+    </Select>
+  )
+}
+
 /** CU-08 Gestionar clases, atributos y métodos. Cada cambio viaja como una operación. */
-export function ClassPropertiesPanel({ uml, readOnly, send }: Props) {
+export function ClassPropertiesPanel({ uml, readOnly, send, otherClassNames = [] }: Props) {
   const id = useId()
 
   const updateClass = (changes: { name?: string; stereotype?: Stereotype | null; visibility?: Visibility }) =>
@@ -139,20 +203,13 @@ export function ClassPropertiesPanel({ uml, readOnly, send }: Props) {
                 })
               }
             />
-            <Input
-              aria-label={`Tipo del atributo ${attribute.name}`}
-              key={`${attribute.id}-type-${attribute.type}`}
-              defaultValue={attribute.type}
+            <AttributeTypeSelect
+              attributeName={attribute.name}
+              value={attribute.type}
+              classNames={otherClassNames}
               disabled={readOnly}
-              className="w-32"
-              onBlur={(e) =>
-                e.target.value.trim() !== attribute.type &&
-                send({
-                  op: 'UPDATE_ATTRIBUTE',
-                  classId: uml.id,
-                  attributeId: attribute.id,
-                  changes: { type: e.target.value.trim() },
-                })
+              onChange={(type) =>
+                send({ op: 'UPDATE_ATTRIBUTE', classId: uml.id, attributeId: attribute.id, changes: { type } })
               }
             />
             <Button

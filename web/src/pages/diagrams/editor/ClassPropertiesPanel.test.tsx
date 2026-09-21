@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { DiagramOperation } from '@/lib/diagram/operations'
-import type { UmlClass } from '@/lib/diagram/types'
+import { DATA_TYPES, type UmlClass } from '@/lib/diagram/types'
 import { ClassPropertiesPanel } from './ClassPropertiesPanel'
 
 const cliente: UmlClass = {
@@ -16,12 +16,13 @@ const cliente: UmlClass = {
 }
 
 /** Monta el panel y devuelve las operaciones que habría enviado. */
-function renderPanel(uml: UmlClass = cliente, readOnly = false) {
+function renderPanel(uml: UmlClass = cliente, readOnly = false, otherClassNames: string[] = []) {
   const sent: DiagramOperation[] = []
   render(
     <ClassPropertiesPanel
       uml={uml}
       readOnly={readOnly}
+      otherClassNames={otherClassNames}
       send={(operation) => {
         sent.push(operation)
         return true
@@ -84,17 +85,52 @@ describe('CU-08 Gestionar clases, atributos y métodos', () => {
     ])
   })
 
-  it('cambiar el tipo de un atributo envía UPDATE_ATTRIBUTE', async () => {
+  it('el tipo de un atributo se elige de una lista, no se escribe', async () => {
     const { sent, user } = renderPanel()
 
-    const type = screen.getByLabelText('Tipo del atributo nombre')
-    await user.clear(type)
-    await user.type(type, 'Integer')
-    await user.tab()
+    await user.click(screen.getByRole('combobox', { name: 'Tipo del atributo nombre' }))
+    await user.click(await screen.findByRole('option', { name: 'int' }))
 
-    expect(sent).toEqual([
-      { op: 'UPDATE_ATTRIBUTE', classId: 'c1', attributeId: 'a1', changes: { type: 'Integer' } },
-    ])
+    expect(sent).toEqual([{ op: 'UPDATE_ATTRIBUTE', classId: 'c1', attributeId: 'a1', changes: { type: 'int' } }])
+  })
+
+  it('la lista ofrece todos los tipos que acepta el servidor', async () => {
+    const { user } = renderPanel()
+
+    await user.click(screen.getByRole('combobox', { name: 'Tipo del atributo nombre' }))
+
+    for (const type of DATA_TYPES) {
+      expect(await screen.findByRole('option', { name: type })).toBeInTheDocument()
+    }
+  })
+
+  it('las demás clases del diagrama también se pueden elegir como tipo', async () => {
+    const { sent, user } = renderPanel(cliente, false, ['Pedido'])
+
+    await user.click(screen.getByRole('combobox', { name: 'Tipo del atributo nombre' }))
+    await user.click(await screen.findByRole('option', { name: 'Pedido' }))
+
+    expect(sent).toEqual([{ op: 'UPDATE_ATTRIBUTE', classId: 'c1', attributeId: 'a1', changes: { type: 'Pedido' } }])
+  })
+
+  it('un tipo guardado que no está en la lista se conserva y se muestra', async () => {
+    const { user } = renderPanel({
+      ...cliente,
+      attributes: [{ id: 'a1', name: 'etiquetas', type: 'List<String>', visibility: 'PRIVATE' }],
+    })
+
+    expect(screen.getByRole('combobox', { name: 'Tipo del atributo etiquetas' })).toHaveTextContent('List<String>')
+    await user.click(screen.getByRole('combobox', { name: 'Tipo del atributo etiquetas' }))
+    expect(await screen.findByRole('option', { name: 'List<String>' })).toBeInTheDocument()
+  })
+
+  it('elegir el mismo tipo que ya tiene no envía nada', async () => {
+    const { sent, user } = renderPanel()
+
+    await user.click(screen.getByRole('combobox', { name: 'Tipo del atributo nombre' }))
+    await user.click(await screen.findByRole('option', { name: 'String' }))
+
+    expect(sent).toHaveLength(0)
   })
 
   it('elimina un atributo', async () => {

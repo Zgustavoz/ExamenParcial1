@@ -287,7 +287,12 @@ export default function DiagramEditorPage() {
                   {locks[selectedClass.id]} está editando esta clase.
                 </p>
               )}
-              <ClassPropertiesPanel uml={selectedClass} readOnly={!connected || lockedBySomeoneElse} send={send} />
+              <ClassPropertiesPanel
+                uml={selectedClass}
+                readOnly={!connected || lockedBySomeoneElse}
+                send={send}
+                otherClassNames={classes.filter((c) => c.id !== selectedClass.id).map((c) => c.name)}
+              />
             </>
           ) : selectedEdge ? (
             <>
