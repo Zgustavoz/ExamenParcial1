@@ -126,3 +126,40 @@ class SequenceResponse(BaseModel):
             if m.from_.strip().lower() not in names or m.to.strip().lower() not in names:
                 raise ValueError(f"El mensaje '{m.name}' referencia una línea de vida inexistente")
         return self
+
+
+# ---------------------------------------------------------------- CU-M1: orden hablada → llamada HTTP
+
+
+class EntityField(BaseModel):
+    name: str
+    type: str
+
+
+class EntityInfo(BaseModel):
+    """Una entidad del backend generado, tal como la expone su API REST."""
+
+    name: str
+    path: str
+    fields: list[EntityField] = Field(default_factory=list)
+
+
+class CommandRequest(BaseModel):
+    instruction: str = Field(min_length=1, max_length=2000)
+    entities: list[EntityInfo] = Field(min_length=1, max_length=50)
+
+
+class CommandResponse(BaseModel):
+    """Llamada que hay que hacer contra el backend generado para cumplir la orden."""
+
+    explanation: str
+    method: Literal["GET", "POST", "PUT", "DELETE"]
+    path: str = Field(min_length=1, max_length=200)
+    body: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _path_is_relative(self) -> "CommandResponse":
+        # El backend solo ejecuta rutas de su propia API: nada de URLs absolutas ni de subir de directorio.
+        if not self.path.startswith("/") or ".." in self.path or "//" in self.path[1:]:
+            raise ValueError("la ruta debe ser relativa y empezar por /")
+        return self
