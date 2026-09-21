@@ -5,6 +5,13 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Notificaciones push (Firebase): cada quien usa su propio proyecto de Firebase. El plugin solo se aplica si
+// existe android/app/google-services.json (que NO está en el repositorio); sin él la app compila igual, sin
+// notificaciones. Ver «Móvil» en el README de la raíz.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
     namespace = "com.diagramas.diagramas_movil"
     compileSdk = flutter.compileSdkVersion

@@ -53,3 +53,8 @@ app.*.map.json
 /test_sqlite/pubspec.lock
 # Caché de Kotlin/Gradle
 /android/.kotlin/
+
+# Firebase: cada quien usa su propio proyecto y sus propias claves (las genera `flutterfire configure`)
+/lib/firebase_options.dart
+/android/app/google-services.json
+/firebase.json

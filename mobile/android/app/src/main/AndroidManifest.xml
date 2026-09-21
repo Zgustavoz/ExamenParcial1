@@ -2,6 +2,7 @@
     <!-- Dictar la orden y hablar con la plataforma. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <!-- Android 11+ exige declarar que se usa el reconocimiento de voz del sistema. -->
     <queries>

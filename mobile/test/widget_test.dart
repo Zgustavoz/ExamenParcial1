@@ -23,6 +23,9 @@ class _FakeApi implements Api {
   Future<List<String>> entities(String token, String diagramId) async => ['Cliente'];
 
   @override
+  Future<void> registerFcmToken(String jwt, String fcmToken) async {}
+
+  @override
   Future<CommandResult> command(String token, String diagramId, String instruction) async {
     ordenes.add(instruction);
     return CommandResult(

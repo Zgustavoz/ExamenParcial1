@@ -89,6 +89,16 @@ class Api {
     return r.map((e) => (e as Map<String, dynamic>)['name'] as String).toList();
   }
 
+  /// Entrega al backend el token de notificaciones de este dispositivo (`PUT /api/me/fcm-token`).
+  Future<void> registerFcmToken(String jwt, String fcmToken) async {
+    final response = await _send(() => http.put(
+      Uri.parse('$baseUrl/api/me/fcm-token'),
+      headers: _headers(jwt),
+      body: jsonEncode({'token': fcmToken}),
+    ));
+    _decode(response);
+  }
+
   Future<CommandResult> command(String token, String diagramId, String instruction) async {
     final r = await _post('/api/generated-app/$diagramId/command', {'instruction': instruction}, token: token);
     return CommandResult.fromJson(r);
