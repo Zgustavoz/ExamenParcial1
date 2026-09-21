@@ -126,8 +126,10 @@ type Query {
   diagrams(projectId: ID!): [Diagram!]!     # CU-05/11
   diagram(id: ID!): Diagram                 # CU-11
   aiChats(diagramId: ID!): [AiChat!]!       # CU-13
-  tasks(diagramId: ID): [Task!]!
+  tasks(diagramId: ID, status: String): [Task!]!
   task(id: ID!): Task
+  myTasks(status: String): [Task!]!        # CU-21: asignadas a mí + automáticas que lancé
+  tasksCreatedByMe: [Task!]!               # CU-21: las que encargué a otras personas
 }
 
 type Mutation {
@@ -137,6 +139,10 @@ type Mutation {
   confirmAiChanges(diagramId: ID!): Diagram!                                                # CU-12  DESIGNER
   generateBackendCode(diagramId: ID!, language: String!): Task!                             # CU-14  DESIGNER/DEVELOPER
   generateSequenceDiagram(sourceDiagramId: ID!): Diagram!                                   # CU-20  DESIGNER
+  createTask(input: NewTaskInput!): Task!                                                   # CU-21
+  updateTaskStatus(id: ID!, status: String!): Task!                                         # CU-21
+  updateTask(id: ID!, input: EditTaskInput!): Task!                                         # CU-21
+  deleteTask(id: ID!): ID!                                                                  # CU-21
 }
 
 enum InputType { TEXTO VOZ }
@@ -229,3 +235,25 @@ solo al emisor por `/user/queue/errors`.
 Tras una caída, el cliente reconecta con backoff exponencial, reenvía `join` y pide el estado completo con
 `diagram(id)` para reconciliar por `version`. Los locks de una sesión se liberan solos al desconectarse
 (y expiran a los 30 s).
+
+### Tareas — CU-21
+
+Las manuales (`type = MANUAL`) se crean con diagrama y persona asignada obligatorios, y empiezan en
+`PENDING`. El estado solo avanza `PENDING → IN_PROGRESS → COMPLETED`; cualquier otro salto, y tocar a mano
+una tarea automática, responde `INVALID_STATE_TRANSITION`.
+
+| Quién | Puede |
+|---|---|
+| Asignado, creador o `COMPANY_ADMIN` | avanzar el estado (`updateTaskStatus`) |
+| Creador o `COMPANY_ADMIN` | editar y eliminar (`updateTask`, `deleteTask`) |
+
+`updateTask` cambia título, descripción y a quién está asignada; el diagrama no se cambia. Si la persona
+asignada cambia, se avisa a la que la recibe (`TASK_ASSIGNED`). Al avanzar el estado se avisa a quien la
+creó (`TASK_STATUS_CHANGED`). Asignar a alguien que no sea un usuario activo de la empresa responde
+`USER_NOT_ELIGIBLE`.
+
+Los campos `assignedToName` y `createdByName` del tipo `Task` resuelven el nombre de esas personas, y solo
+se calculan si el cliente los pide.
+
+`GET /api/users/assignable` (cualquier rol) devuelve `{id, username, displayName}` de los usuarios activos
+de la empresa, que es lo justo para elegir a quién asignar una tarea.

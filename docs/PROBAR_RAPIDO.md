@@ -181,3 +181,56 @@ Para parar todo sin perder la base de datos:
 ```powershell
 docker compose --env-file .env -f infra/docker-compose.yml stop
 ```
+
+---
+
+## Demostrar el backend generado desde el móvil
+
+El cliente Flutter existe solo para esto: se dicta una orden y el registro aparece en la API que generó la
+plataforma. Detalles en [mobile/README.md](../mobile/README.md); aquí va el guion de la demostración.
+
+**1. Un diagrama con algo que registrar.** Como `designer`, cree un diagrama con una clase `Cliente` y los
+atributos `nombre` y `email`.
+
+**2. Genere y descargue el código.** Botón **Código** → **Generar código**; entre como `developer` y
+**Descargar ZIP**.
+
+**3. Ponga en marcha el backend generado.** Descomprima el ZIP y:
+
+```powershell
+cd <carpeta-del-zip>
+mvn spring-boot:run
+```
+
+Queda en `http://localhost:8090` con una base H2 en `./data`. Compruébelo en Postman:
+
+```
+GET http://localhost:8090/api/clientes     → []
+```
+
+**4. Dicte desde el móvil.**
+
+```powershell
+cd mobile
+flutter run --dart-define=API_URL=http://10.0.2.2:8080
+```
+
+Entre, elija el diagrama, pulse el micrófono y diga:
+
+> registra un cliente con nombre Juan Pérez y email juan@ejemplo.com
+
+**5. Enséñelo en Postman.** El mismo `GET` de antes ahora devuelve el cliente:
+
+```json
+[{"id":"…","nombre":"Juan Pérez","email":"juan@ejemplo.com"}]
+```
+
+> **El asistente no hace falta.** Si el `.env` no tiene `LLM_API_KEY`, la orden la interpreta un intérprete
+> local que entiende «registra un `<entidad>` con `<campo> <valor>`». La app avisa cuando ha sido así
+> («interpretado sin IA»).
+
+| Síntoma | Causa |
+|---|---|
+| «No se pudo contactar con el backend generado» | La app generada no está en marcha, o no está en `http://localhost:8090`. Ajuste `GENERATED_APP_URL` en el `.env`. |
+| «No entendí la orden» | Nombre la entidad y algún campo tal como están en el diagrama: «registra un cliente con nombre Ana». |
+| El móvil no llega a la plataforma | En emulador use `10.0.2.2`; en un móvil físico, la IP del PC en la wifi. |

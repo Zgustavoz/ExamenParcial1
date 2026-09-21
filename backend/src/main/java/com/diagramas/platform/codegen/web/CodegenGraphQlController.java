@@ -3,6 +3,7 @@ package com.diagramas.platform.codegen.web;
 import com.diagramas.platform.codegen.domain.Task;
 import com.diagramas.platform.codegen.service.CodeGenerationService;
 import com.diagramas.platform.codegen.service.TaskService;
+import com.diagramas.platform.codegen.service.TaskService.EditTask;
 import com.diagramas.platform.codegen.service.TaskService.NewTask;
 import com.diagramas.platform.common.security.CurrentUser;
 import com.diagramas.platform.common.util.Json;
@@ -11,6 +12,7 @@ import java.util.UUID;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
+import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 
@@ -32,6 +34,9 @@ public class CodegenGraphQlController {
 
     /** Datos que llegan desde GraphQL para crear una tarea manual (CU-21). */
     public record NewTaskInput(UUID diagramId, UUID assignedTo, String title, String description) {}
+
+    /** Datos que llegan desde GraphQL para editar una tarea manual (CU-21). */
+    public record EditTaskInput(UUID assignedTo, String title, String description) {}
 
     private final CodeGenerationService codegen;
     private final TaskService taskService;
@@ -74,6 +79,33 @@ public class CodegenGraphQlController {
     @MutationMapping
     public TaskDto updateTaskStatus(@Argument UUID id, @Argument String status) {
         return TaskDto.of(taskService.updateStatus(CurrentUser.get(), id, status));
+    }
+
+    @MutationMapping
+    public TaskDto updateTask(@Argument UUID id, @Argument EditTaskInput input) {
+        return TaskDto.of(taskService.update(
+                CurrentUser.get(), id, new EditTask(input.assignedTo(), input.title(), input.description())));
+    }
+
+    /** Devuelve el id de la tarea eliminada para que el cliente sepa cuál quitar. */
+    @MutationMapping
+    public UUID deleteTask(@Argument UUID id) {
+        taskService.delete(CurrentUser.get(), id);
+        return id;
+    }
+
+    /**
+     * Nombre de la persona asignada y de quien creó la tarea. Se resuelven aquí y solo si el cliente los
+     * pide: la tarea guarda los identificadores, no los nombres.
+     */
+    @SchemaMapping(typeName = "Task")
+    public String assignedToName(TaskDto task) {
+        return taskService.displayName(CurrentUser.get(), task.assignedTo());
+    }
+
+    @SchemaMapping(typeName = "Task")
+    public String createdByName(TaskDto task) {
+        return taskService.displayName(CurrentUser.get(), task.createdBy());
     }
 
     @QueryMapping

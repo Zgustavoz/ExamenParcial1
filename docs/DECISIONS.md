@@ -168,3 +168,41 @@ El navegador envía la cabecera `Origin` también en peticiones del mismo origen
 `HEAD`. Con la SPA servida en `http://localhost:8081` y solo `http://localhost:4200` en la lista, el backend
 respondía `403` a todo `POST`, incluido el login: la aplicación era inusable en el despliegue con Docker,
 aunque `curl` funcionara. La plantilla `.env.example` incluye ahora ambos orígenes.
+
+## Decisiones del cliente móvil
+
+### D-33 — El móvil se reduce a demostrar el backend generado
+
+La sección 11.2 del enunciado describe un cliente Flutter completo: consulta de diagramas, chat con la IA,
+notificaciones push y modo offline con SQLite (CU-18). Por decisión del equipo se recortó a **una sola
+pantalla con un botón de micrófono**, cuyo único objetivo es demostrar que el código que genera la
+plataforma funciona de verdad: se dicta «registra un cliente…» y el registro aparece en la API generada.
+
+CU-18 (offline y sincronización) y el CP-08 que lo acompaña quedan, por tanto, **sin implementar**. El resto
+del sistema no cambia.
+
+### D-34 — El generador emite también repositorios y controladores REST
+
+D-04 limitaba el generador a entidades JPA más un esqueleto compilable, y la sección 15 dejaba los
+repositorios y controladores como mejora futura. Con ese alcance el código generado **no expone ninguna
+API**, así que no había dónde registrar nada ni qué enseñar en Postman: la demostración del móvil era
+imposible.
+
+Ahora, por cada clase concreta del diagrama (ni interfaces, ni enums, ni abstractas, que no se instancian)
+se generan un `JpaRepository` y un `@RestController` con el CRUD completo en `/api/<entidad>s`. El proyecto
+arranca contra **H2 en un archivo local** y en el puerto 8090, de modo que el ZIP se ejecuta sin instalar
+ni configurar nada; apuntando `DB_URL` a PostgreSQL funciona igual.
+
+### D-35 — La orden hablada se interpreta en el servidor, con respaldo sin IA
+
+El móvil transcribe la voz (D-06) y envía **solo texto** a la plataforma, que es quien traduce la orden a
+una llamada HTTP y la ejecuta contra el backend generado. Así la clave del LLM no sale del servidor, el
+móvil necesita una sola dirección, y todo el camino se puede probar con `curl` sin compilar la app.
+
+La traducción la hace el asistente (`POST /v1/command` del `ai-service`). Si no está configurado o falla,
+actúa un **intérprete local** que entiende órdenes del tipo «registra un `<entidad>` con `<campo> <valor>`»:
+la demostración no depende de que el LLM esté disponible. La respuesta dice cuál de los dos actuó.
+
+Por seguridad, la ruta que se ejecuta tiene que ser una de las que el diagrama expone: una ruta inventada o
+absoluta se rechaza con `AI_INVALID_RESPONSE`, para que una respuesta del LLM no pueda dirigir la petición
+a otro servidor.

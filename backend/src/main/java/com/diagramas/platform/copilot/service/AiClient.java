@@ -64,6 +64,14 @@ public class AiClient {
         return post("/v1/sequence", body);
     }
 
+    /** POST /v1/command → {explanation, method, path, body}: la llamada que cumple una orden hablada. */
+    public JsonNode command(String instruction, JsonNode entities) {
+        ObjectNode body = Json.object();
+        body.put("instruction", instruction);
+        body.set("entities", entities);
+        return post("/v1/command", body);
+    }
+
     private JsonNode post(String path, JsonNode body) {
         try {
             JsonNode response = client.post()

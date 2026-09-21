@@ -8,8 +8,22 @@ from typing import TypeVar
 from pydantic import BaseModel, ValidationError
 
 from .llm import InvalidLlmResponse, LlmProvider
-from .prompts import INTERPRET_SYSTEM, SEQUENCE_SYSTEM, interpret_user_message, sequence_user_message
-from .schemas import InterpretRequest, InterpretResponse, SequenceRequest, SequenceResponse
+from .prompts import (
+    COMMAND_SYSTEM,
+    INTERPRET_SYSTEM,
+    SEQUENCE_SYSTEM,
+    command_user_message,
+    interpret_user_message,
+    sequence_user_message,
+)
+from .schemas import (
+    CommandRequest,
+    CommandResponse,
+    InterpretRequest,
+    InterpretResponse,
+    SequenceRequest,
+    SequenceResponse,
+)
 
 log = logging.getLogger(__name__)
 M = TypeVar("M", bound=BaseModel)
@@ -45,6 +59,12 @@ class CopilotService:
     def sequence(self, req: SequenceRequest) -> SequenceResponse:
         messages = [{"role": "user", "content": sequence_user_message(req.contentJson)}]
         return self._complete_validated(SEQUENCE_SYSTEM, messages, SequenceResponse)
+
+    def command(self, req: CommandRequest) -> CommandResponse:
+        """Traduce una orden hablada a la llamada HTTP que la cumple (demo del backend generado)."""
+        entities = [e.model_dump() for e in req.entities]
+        messages = [{"role": "user", "content": command_user_message(req.instruction, entities)}]
+        return self._complete_validated(COMMAND_SYSTEM, messages, CommandResponse)
 
     def _complete_validated(self, system: str, messages: list[dict], model: type[M]) -> M:
         """Un reintento si el JSON es inválido; si sigue inválido → InvalidLlmResponse (HTTP 502).

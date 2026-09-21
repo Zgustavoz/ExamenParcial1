@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -127,8 +128,19 @@ public class JavaSpringBootGenerator implements CodeGenerator {
         files.add(new GeneratedFile("pom.xml", pom()));
         files.add(new GeneratedFile(sourcePath(basePackage, "Application"), application()));
         files.add(new GeneratedFile("src/main/resources/application.properties", properties()));
+        Map<String, Cls> byJavaName = new LinkedHashMap<>();
+        for (Cls cls : classes) {
+            byJavaName.put(cls.javaName, cls);
+        }
         for (Cls cls : classes) {
             files.add(new GeneratedFile(sourcePath(basePackage + ".model", cls.javaName), render(cls, javaNames)));
+            // Una interfaz, un enum o una clase abstracta no se instancian: no tienen API propia.
+            if (!cls.isEntity() || "abstract".equals(cls.stereotype)) continue;
+            String idType = idTypeOf(cls, byJavaName);
+            files.add(new GeneratedFile(
+                    sourcePath(basePackage + ".repository", cls.javaName + "Repository"), repository(cls, idType)));
+            files.add(new GeneratedFile(
+                    sourcePath(basePackage + ".web", cls.javaName + "Controller"), controller(cls, idType)));
         }
         files.sort(Comparator.comparing(GeneratedFile::path));
         return files;
@@ -412,6 +424,15 @@ public class JavaSpringBootGenerator implements CodeGenerator {
                             <artifactId>spring-boot-starter-data-jpa</artifactId>
                         </dependency>
                         <dependency>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-starter-web</artifactId>
+                        </dependency>
+                        <dependency>
+                            <groupId>com.h2database</groupId>
+                            <artifactId>h2</artifactId>
+                            <scope>runtime</scope>
+                        </dependency>
+                        <dependency>
                             <groupId>org.postgresql</groupId>
                             <artifactId>postgresql</artifactId>
                             <scope>runtime</scope>
@@ -446,13 +467,118 @@ public class JavaSpringBootGenerator implements CodeGenerator {
                 """.formatted(basePackage);
     }
 
+    /**
+     * Por omisión el proyecto arranca contra H2 en un archivo local, para que el ZIP se pueda ejecutar sin
+     * instalar nada. Apuntando `DB_URL` a PostgreSQL funciona igual.
+     */
     private String properties() {
         return """
-                spring.datasource.url=${DB_URL:jdbc:postgresql://localhost:5432/generated}
-                spring.datasource.username=${DB_USER:postgres}
+                spring.datasource.url=${DB_URL:jdbc:h2:file:./data/generated;AUTO_SERVER=TRUE}
+                spring.datasource.username=${DB_USER:sa}
                 spring.datasource.password=${DB_PASSWORD:}
                 spring.jpa.hibernate.ddl-auto=update
+                server.port=${SERVER_PORT:8090}
                 """;
+    }
+
+    // ------------------------------------------------------------------ API REST generada
+
+    /**
+     * Tipo del identificador de una entidad. Una subclase no declara el suyo: lo hereda de la raíz de la
+     * jerarquía, así que hay que subir hasta encontrarlo.
+     */
+    private static String idTypeOf(Cls cls, Map<String, Cls> byJavaName) {
+        for (Field f : cls.fields) {
+            if (f.id()) return f.type();
+        }
+        Cls parent = cls.extendsName == null ? null : byJavaName.get(cls.extendsName);
+        return parent == null ? "UUID" : idTypeOf(parent, byJavaName);
+    }
+
+    /** Ruta del recurso: el nombre de la clase en minúsculas y en plural. `Cliente` → `clientes`. */
+    public static String resourcePath(String javaName) {
+        String base = javaName.toLowerCase(Locale.ROOT);
+        return base.endsWith("s") ? base : base + "s";
+    }
+
+    private String repository(Cls cls, String idType) {
+        return """
+                package %s.repository;
+
+                import %s.model.%s;
+                %simport org.springframework.data.jpa.repository.JpaRepository;
+
+                public interface %sRepository extends JpaRepository<%s, %s> {}
+                """
+                .formatted(basePackage, basePackage, cls.javaName,
+                        "UUID".equals(idType) ? "import java.util.UUID;\n" : "",
+                        cls.javaName, cls.javaName, idType);
+    }
+
+    /** CRUD sobre la entidad: es lo que convierte el diagrama en una API que se puede probar. */
+    private String controller(Cls cls, String idType) {
+        String name = cls.javaName;
+        return """
+                package %s.web;
+
+                import %s.model.%s;
+                import %s.repository.%sRepository;
+                import java.util.List;
+                %simport org.springframework.http.HttpStatus;
+                import org.springframework.http.ResponseEntity;
+                import org.springframework.web.bind.annotation.DeleteMapping;
+                import org.springframework.web.bind.annotation.GetMapping;
+                import org.springframework.web.bind.annotation.PathVariable;
+                import org.springframework.web.bind.annotation.PostMapping;
+                import org.springframework.web.bind.annotation.PutMapping;
+                import org.springframework.web.bind.annotation.RequestBody;
+                import org.springframework.web.bind.annotation.RequestMapping;
+                import org.springframework.web.bind.annotation.ResponseStatus;
+                import org.springframework.web.bind.annotation.RestController;
+
+                @RestController
+                @RequestMapping("/api/%s")
+                public class %sController {
+
+                    private final %sRepository repository;
+
+                    public %sController(%sRepository repository) {
+                        this.repository = repository;
+                    }
+
+                    @GetMapping
+                    public List<%s> list() {
+                        return repository.findAll();
+                    }
+
+                    @GetMapping("/{id}")
+                    public ResponseEntity<%s> get(@PathVariable %s id) {
+                        return repository.findById(id).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+                    }
+
+                    @PostMapping
+                    @ResponseStatus(HttpStatus.CREATED)
+                    public %s create(@RequestBody %s body) {
+                        return repository.save(body);
+                    }
+
+                    @PutMapping("/{id}")
+                    public ResponseEntity<%s> update(@PathVariable %s id, @RequestBody %s body) {
+                        if (!repository.existsById(id)) return ResponseEntity.notFound().build();
+                        return ResponseEntity.ok(repository.save(body));
+                    }
+
+                    @DeleteMapping("/{id}")
+                    @ResponseStatus(HttpStatus.NO_CONTENT)
+                    public void delete(@PathVariable %s id) {
+                        repository.deleteById(id);
+                    }
+                }
+                """
+                .formatted(basePackage, basePackage, name, basePackage, name,
+                        "UUID".equals(idType) ? "import java.util.UUID;\n" : "",
+                        resourcePath(name), name, name, name, name,
+                        name, name, idType, name, name, name, idType, name, idType);
     }
 
     private static String sourcePath(String pkg, String className) {

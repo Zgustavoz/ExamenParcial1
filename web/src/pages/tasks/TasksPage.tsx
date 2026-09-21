@@ -1,8 +1,9 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CircleCheck, CirclePlay, LoaderCircle } from 'lucide-react'
+import { CircleCheck, CirclePlay, LoaderCircle, Pencil, Plus, Trash2, User } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
+import { ConfirmButton } from '@/components/ConfirmButton'
 import { FormError } from '@/components/FormError'
 import { PageHeader } from '@/components/PageHeader'
 import { Badge } from '@/components/ui/badge'
@@ -10,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import type { Task } from '@/lib/api/codegen'
 import { errorMessage } from '@/lib/api/errors'
 import {
+  deleteTask,
   listMyTasks,
   listTasksCreatedByMe,
   NEXT_STATUS,
@@ -20,6 +22,8 @@ import {
 } from '@/lib/api/tasks'
 import { formatDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/stores/auth-store'
+import { TaskFormDialog } from './TaskFormDialog'
 
 type Pestana = 'mine' | 'created'
 
@@ -40,8 +44,11 @@ const COLOR: Record<TaskStatus, string> = {
 /** CU-21 Gestionar tareas: lo que me toca y lo que asigné a otras personas. */
 export default function TasksPage() {
   const queryClient = useQueryClient()
+  const currentUserId = useAuthStore((s) => s.user?.id)
   const [pestana, setPestana] = useState<Pestana>('mine')
   const [status, setStatus] = useState<TaskStatus | ''>('')
+  const [creando, setCreando] = useState(false)
+  const [editando, setEditando] = useState<Task | null>(null)
 
   const mine = useQuery({
     queryKey: ['tasks', 'mine', { status }],
@@ -55,11 +62,22 @@ export default function TasksPage() {
     enabled: pestana === 'created',
   })
 
+  const refrescar = () => queryClient.invalidateQueries({ queryKey: ['tasks'] })
+
   const avanzar = useMutation({
     mutationFn: ({ id, next }: { id: string; next: TaskStatus }) => updateTaskStatus(id, next),
     onSuccess: async (task) => {
-      await queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      await refrescar()
       toast.success(`«${task.title}» pasó a ${STATUS_LABEL[task.status].toLowerCase()}.`)
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  })
+
+  const eliminar = useMutation({
+    mutationFn: deleteTask,
+    onSuccess: async () => {
+      await refrescar()
+      toast.success('Tarea eliminada.')
     },
     onError: (error) => toast.error(errorMessage(error)),
   })
@@ -69,7 +87,12 @@ export default function TasksPage() {
 
   return (
     <>
-      <PageHeader title="Tareas" description="Lo que tiene pendiente y lo que encargó a otras personas." />
+      <PageHeader title="Tareas" description="Lo que tiene pendiente y lo que encargó a otras personas.">
+        <Button onClick={() => setCreando(true)}>
+          <Plus className="size-4" aria-hidden />
+          Nueva tarea
+        </Button>
+      </PageHeader>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <div className="flex gap-1 rounded-lg bg-muted p-1" role="tablist" aria-label="Tipo de tareas">
@@ -124,13 +147,17 @@ export default function TasksPage() {
           <p className="rounded-xl border border-dashed py-16 text-center text-muted-foreground">
             {pestana === 'mine'
               ? 'No tiene tareas asignadas.'
-              : 'Todavía no ha creado ninguna tarea. Puede crearlas desde un diagrama.'}
+              : 'Todavía no ha encargado ninguna tarea.'}
           </p>
         ) : (
           <ul className="grid gap-3">
             {tasks.map((task) => {
               const next = NEXT_STATUS[task.status]
-              const puedeAvanzar = next !== undefined && task.type === 'MANUAL'
+              const esManual = task.type === 'MANUAL'
+              const puedeAvanzar = next !== undefined && esManual
+              // Editar y eliminar son cosa de quien la encargó; el backend lo vuelve a comprobar.
+              const puedeGestionar = esManual && task.createdBy === currentUserId
+
               return (
                 <li key={task.id} className="flex flex-wrap items-start justify-between gap-4 rounded-xl border p-4">
                   <div className="min-w-0">
@@ -139,18 +166,25 @@ export default function TasksPage() {
                       <Badge variant="outline" className={COLOR[task.status]}>
                         {STATUS_LABEL[task.status]}
                       </Badge>
-                      {task.type !== 'MANUAL' && (
-                        <Badge variant="secondary">{TASK_TYPE_LABEL[task.type] ?? task.type}</Badge>
-                      )}
+                      {!esManual && <Badge variant="secondary">{TASK_TYPE_LABEL[task.type] ?? task.type}</Badge>}
                     </p>
-                    {task.description && (
-                      <p className="mt-1 text-sm text-muted-foreground">{task.description}</p>
-                    )}
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {formatDate(task.createdAt)}
+
+                    {task.description && <p className="mt-1 text-sm text-muted-foreground">{task.description}</p>}
+
+                    <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
+                      {esManual && (
+                        <span className="flex items-center gap-1">
+                          <User className="size-3.5" aria-hidden />
+                          {/* En «Mis tareas» interesa quién la encargó; en «Creadas por mí», a quién se la di. */}
+                          {pestana === 'mine'
+                            ? `De ${task.createdByName ?? 'alguien de la empresa'}`
+                            : `Para ${task.assignedToName ?? 'sin asignar'}`}
+                        </span>
+                      )}
+                      <span>· {formatDate(task.createdAt)}</span>
                       {task.diagramId && (
                         <>
-                          {' · '}
+                          <span>·</span>
                           <Link to={`/diagrams/${task.diagramId}/view`} className="hover:underline">
                             Ver el diagrama
                           </Link>
@@ -159,26 +193,64 @@ export default function TasksPage() {
                     </p>
                   </div>
 
-                  {puedeAvanzar && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => avanzar.mutate({ id: task.id, next })}
-                      disabled={avanzar.isPending}
-                    >
-                      {next === 'IN_PROGRESS' ? (
-                        <CirclePlay className="size-4" aria-hidden />
-                      ) : (
-                        <CircleCheck className="size-4" aria-hidden />
-                      )}
-                      {next === 'IN_PROGRESS' ? 'Empezar' : 'Completar'}
-                    </Button>
-                  )}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {puedeAvanzar && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => avanzar.mutate({ id: task.id, next })}
+                        disabled={avanzar.isPending}
+                      >
+                        {next === 'IN_PROGRESS' ? (
+                          <CirclePlay className="size-4" aria-hidden />
+                        ) : (
+                          <CircleCheck className="size-4" aria-hidden />
+                        )}
+                        {next === 'IN_PROGRESS' ? 'Empezar' : 'Completar'}
+                      </Button>
+                    )}
+
+                    {puedeGestionar && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setEditando(task)}
+                          aria-label={`Editar la tarea ${task.title}`}
+                        >
+                          <Pencil className="size-4" aria-hidden />
+                          Editar
+                        </Button>
+
+                        <ConfirmButton
+                          title={`¿Eliminar «${task.title}»?`}
+                          description="La tarea desaparecerá para quien la tiene asignada. No se puede deshacer."
+                          confirmLabel="Eliminar la tarea"
+                          disabled={eliminar.isPending}
+                          onConfirm={() => eliminar.mutate(task.id)}
+                        >
+                          <Trash2 className="size-4" aria-hidden />
+                          Eliminar
+                        </ConfirmButton>
+                      </>
+                    )}
+                  </div>
                 </li>
               )
             })}
           </ul>
         ))}
+
+      {creando && <TaskFormDialog open onOpenChange={(open) => !open && setCreando(false)} />}
+
+      {editando && (
+        <TaskFormDialog
+          key={editando.id}
+          open
+          task={editando}
+          onOpenChange={(open) => !open && setEditando(null)}
+        />
+      )}
     </>
   )
 }

@@ -15,6 +15,9 @@ class TaskIT extends AbstractIntegrationTest {
 
     private static final String CREAR =
             "mutation($i: NewTaskInput!) { createTask(input: $i) { id type title status assignedTo createdBy diagramId startedAt completedAt } }";
+    private static final String EDITAR =
+            "mutation($id: ID!, $i: EditTaskInput!) { updateTask(id: $id, input: $i) { id title description assignedTo assignedToName createdByName } }";
+    private static final String ELIMINAR = "mutation($id: ID!) { deleteTask(id: $id) }";
     private static final String CAMBIAR =
             "mutation($id: ID!, $s: String!) { updateTaskStatus(id: $id, status: $s) { id status startedAt completedAt } }";
 
@@ -218,5 +221,84 @@ class TaskIT extends AbstractIntegrationTest {
         Ctx c = ctx();
         JsonNode r = graphql(c.t().designerToken(), CAMBIAR, Map.of("id", UUID.randomUUID().toString(), "s", "IN_PROGRESS"));
         assertThat(errorCode(r)).isEqualTo("NOT_FOUND");
+    }
+
+    @Test
+    void editarCambiaElTituloYReasignaAvisandoAQuienLaRecibe() {
+        Ctx c = ctx();
+        String id = crear(c, c.t().designerToken(), Map.of()).get("data").get("createTask").get("id").asText();
+
+        JsonNode r = graphql(c.t().designerToken(), EDITAR, Map.of(
+                "id", id,
+                "i", Map.of("assignedTo", c.developerId(), "title", "Revisar el modelo (v2)",
+                        "description", "Con multiplicidades")));
+
+        assertThat(r.has("errors")).as(r.toString()).isFalse();
+        JsonNode task = r.get("data").get("updateTask");
+        assertThat(task.get("title").asText()).isEqualTo("Revisar el modelo (v2)");
+        assertThat(task.get("description").asText()).isEqualTo("Con multiplicidades");
+        assertThat(task.get("assignedTo").asText()).isEqualTo(c.developerId());
+        // Los nombres se resuelven para que la interfaz no tenga que buscarlos.
+        assertThat(task.get("assignedToName").isNull()).isFalse();
+        assertThat(task.get("createdByName").isNull()).isFalse();
+
+        // Solo se avisa a quien la recibe ahora.
+        assertThat(notificacionesDe(c.t().developerToken(), "TASK_ASSIGNED")).hasSize(1);
+    }
+
+    @Test
+    void editarValidaElTituloYQueElAsignadoSeaDeLaEmpresa() {
+        Ctx c = ctx();
+        String id = crear(c, c.t().designerToken(), Map.of()).get("data").get("createTask").get("id").asText();
+
+        JsonNode sinTitulo = graphql(c.t().designerToken(), EDITAR, Map.of(
+                "id", id, "i", Map.of("assignedTo", c.designer2Id(), "title", "   ")));
+        assertThat(errorCode(sinTitulo)).isEqualTo("VALIDATION_ERROR");
+
+        JsonNode ajeno = graphql(c.t().designerToken(), EDITAR, Map.of(
+                "id", id, "i", Map.of("assignedTo", UUID.randomUUID().toString(), "title", "Ajena")));
+        assertThat(errorCode(ajeno)).isEqualTo("USER_NOT_ELIGIBLE");
+    }
+
+    @Test
+    void editarYEliminarSonDeQuienLaEncargoNoDeQuienLaTieneAsignada() {
+        Ctx c = ctx();
+        String id = crear(c, c.t().designerToken(), Map.of()).get("data").get("createTask").get("id").asText();
+
+        // designer2 la tiene asignada: puede avanzar el estado, pero no gestionarla.
+        JsonNode edita = graphql(c.t().designer2Token(), EDITAR, Map.of(
+                "id", id, "i", Map.of("assignedTo", c.designer2Id(), "title", "Mía ahora")));
+        assertThat(errorCode(edita)).isEqualTo("FORBIDDEN");
+
+        JsonNode elimina = graphql(c.t().designer2Token(), ELIMINAR, Map.of("id", id));
+        assertThat(errorCode(elimina)).isEqualTo("FORBIDDEN");
+
+        // El administrador de la empresa sí puede.
+        JsonNode admin = graphql(c.t().adminToken(), EDITAR, Map.of(
+                "id", id, "i", Map.of("assignedTo", c.designer2Id(), "title", "Corregida")));
+        assertThat(admin.has("errors")).as(admin.toString()).isFalse();
+    }
+
+    @Test
+    void eliminarLaQuitaDeLaListaYNoAplicaALasAutomaticas() {
+        Ctx c = ctx();
+        String id = crear(c, c.t().designerToken(), Map.of()).get("data").get("createTask").get("id").asText();
+
+        JsonNode r = graphql(c.t().designerToken(), ELIMINAR, Map.of("id", id));
+        assertThat(r.has("errors")).as(r.toString()).isFalse();
+        assertThat(r.get("data").get("deleteTask").asText()).isEqualTo(id);
+
+        JsonNode quedan = graphql(c.t().designer2Token(), "query { myTasks { id } }", Map.of());
+        assertThat(quedan.get("data").get("myTasks")).isEmpty();
+
+        // Una tarea automática no se borra a mano.
+        saveDiagram(c.t().designerToken(), c.diagramId(), Map.of("type", "CLASS", "classes", List.of(
+                Map.of("id", "c1", "name", "Cliente", "x", 10, "y", 10,
+                        "attributes", List.of(Map.of("name", "nombre", "type", "String")))), "relationships", List.of()), 1);
+        String auto = graphql(c.t().designerToken(),
+                "mutation($d: ID!) { generateBackendCode(diagramId: $d, language: \"JAVA\") { id } }",
+                Map.of("d", c.diagramId())).get("data").get("generateBackendCode").get("id").asText();
+        assertThat(errorCode(graphql(c.t().designerToken(), ELIMINAR, Map.of("id", auto))))
+                .isEqualTo("INVALID_STATE_TRANSITION");
     }
 }

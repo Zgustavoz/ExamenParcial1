@@ -9,7 +9,14 @@ from fastapi.responses import JSONResponse
 
 from .config import Settings, get_settings
 from .llm import InvalidLlmResponse, LlmTimeout, LlmUnavailable, build_provider
-from .schemas import InterpretRequest, InterpretResponse, SequenceRequest, SequenceResponse
+from .schemas import (
+    CommandRequest,
+    CommandResponse,
+    InterpretRequest,
+    InterpretResponse,
+    SequenceRequest,
+    SequenceResponse,
+)
 from .service import CopilotService
 
 logging.basicConfig(level=get_settings().log_level.upper())
@@ -83,3 +90,13 @@ def interpret(req: InterpretRequest, service: CopilotService = Depends(get_servi
 )
 def sequence(req: SequenceRequest, service: CopilotService = Depends(get_service)) -> SequenceResponse:
     return service.sequence(req)
+
+
+@app.post(
+    "/v1/command",
+    response_model=CommandResponse,
+    response_model_exclude_none=True,
+    dependencies=[Depends(require_internal_key)],
+)
+def command(req: CommandRequest, service: CopilotService = Depends(get_service)) -> CommandResponse:
+    return service.command(req)
