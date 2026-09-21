@@ -15,7 +15,10 @@ export function toMermaid(content: SequenceContent): string {
   const lines = ['sequenceDiagram', '  autonumber']
 
   for (const lifeline of content.lifelines) {
-    lines.push(`  participant ${alias.get(lifeline.id)} as ${safe(lifeline.name)}`)
+    // Una línea de vida sin clase es un actor externo (el usuario que inicia el flujo): se dibuja como un muñeco.
+    // Las que representan una clase del diagrama van como caja, sin estereotipo: solo se trabaja con modelos.
+    const kind = lifeline.classId ? 'participant' : 'actor'
+    lines.push(`  ${kind} ${alias.get(lifeline.id)} as ${safe(lifeline.name)}`)
   }
 
   const ordered = [...content.messages].sort((a, b) => a.order - b.order)
@@ -42,7 +45,15 @@ export function SequenceView({ content }: { content: SequenceContent }) {
     // Mermaid pesa bastante y solo hace falta en esta pantalla: se carga cuando se usa.
     import('mermaid')
       .then(async ({ default: mermaid }) => {
-        mermaid.initialize({ startOnLoad: false, theme: 'neutral', securityLevel: 'strict' })
+        // `mirrorActors: false` quita la segunda fila de cajas del final: los objetos solo se dibujan arriba.
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: 'neutral',
+          // El tema neutro dibuja el muñeco y los bordes en un gris casi blanco: se oscurecen para que se lean.
+          themeVariables: { actorBorder: '#4b5563' },
+          securityLevel: 'strict',
+          sequence: { mirrorActors: false },
+        })
         const { svg } = await mermaid.render(`sequence-${Date.now()}`, definition)
         if (!cancelled && container.current) {
           container.current.innerHTML = svg
