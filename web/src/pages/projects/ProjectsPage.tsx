@@ -77,7 +77,7 @@ export default function ProjectsPage() {
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {data.content.map((project) => (
               <li key={project.id}>
-                <Card className="h-full transition-shadow hover:shadow-md">
+                <Card className="h-full border-border/60 transition-colors hover:border-primary/50 hover:bg-card/80">
                   <CardHeader className="flex-row items-start justify-between gap-2">
                     <CardTitle>
                       <Link to={`/projects/${project.id}`} className="hover:underline">

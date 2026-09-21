@@ -42,7 +42,7 @@ export function SequenceView({ content }: { content: SequenceContent }) {
     // Mermaid pesa bastante y solo hace falta en esta pantalla: se carga cuando se usa.
     import('mermaid')
       .then(async ({ default: mermaid }) => {
-        mermaid.initialize({ startOnLoad: false, theme: 'neutral', securityLevel: 'strict' })
+        mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'strict' })
         const { svg } = await mermaid.render(`sequence-${Date.now()}`, definition)
         if (!cancelled && container.current) {
           container.current.innerHTML = svg

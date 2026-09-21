@@ -283,7 +283,7 @@ export default function DiagramEditorPage() {
             <>
               <h2 className="mb-4 font-medium">Clase</h2>
               {lockedBySomeoneElse && (
-                <p className="mb-3 rounded-md bg-amber-50 p-2 text-xs text-amber-800">
+                <p className="mb-3 rounded-sm border border-amber-400/30 bg-amber-400/10 p-2 text-xs text-amber-300">
                   {locks[selectedClass.id]} está editando esta clase.
                 </p>
               )}

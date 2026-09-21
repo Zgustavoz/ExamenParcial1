@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query'
-import { Building2, Eye, EyeOff, LoaderCircle, LogIn, TriangleAlert } from 'lucide-react'
+import { Boxes, Eye, EyeOff, LoaderCircle, LogIn, TriangleAlert } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -45,11 +45,17 @@ export default function LoginPage() {
   const pending = mutation.isPending
 
   return (
-    <main className="flex min-h-svh items-center justify-center bg-linear-to-b from-secondary to-background p-6">
-      <Card className="w-full max-w-sm">
+    <main className="relative flex min-h-svh items-center justify-center overflow-hidden p-6">
+      {/* Halo del color de marca detrás de la tarjeta: da profundidad sin cargar la pantalla. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-40 left-1/2 size-[36rem] -translate-x-1/2 rounded-full bg-primary/20 blur-[120px]"
+      />
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-linear-to-b from-transparent to-background" />
+      <Card className="relative w-full max-w-sm border-border/70 shadow-2xl shadow-black/40">
         <CardHeader className="items-center text-center">
-          <div className="mx-auto mb-2 flex size-11 items-center justify-center rounded-xl bg-primary/10">
-            <Building2 className="size-6 text-primary" aria-hidden />
+          <div className="mx-auto mb-2 flex size-11 items-center justify-center rounded-sm bg-primary text-primary-foreground">
+            <Boxes className="size-6" aria-hidden />
           </div>
           <CardTitle>
             <h1 className="text-xl">Plataforma de Diagramas UML</h1>

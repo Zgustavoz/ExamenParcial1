@@ -74,7 +74,7 @@ export default function ProjectDiagramsPage() {
               const to = isDesigner && !isSequence ? `/diagrams/${diagram.id}` : `/diagrams/${diagram.id}/view`
               return (
                 <li key={diagram.id}>
-                  <Card className="h-full transition-shadow hover:shadow-md">
+                  <Card className="h-full border-border/60 transition-colors hover:border-primary/50 hover:bg-card/80">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         {isSequence ? (

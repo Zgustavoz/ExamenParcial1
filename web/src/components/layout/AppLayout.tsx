@@ -1,4 +1,4 @@
-import { Bell, Building2, FolderKanban, ListChecks, LogOut, Users } from 'lucide-react'
+import { Bell, Boxes, Building2, FolderKanban, ListChecks, LogOut, Users } from 'lucide-react'
 import { useEffect } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -103,38 +103,72 @@ export function AppLayout() {
 
   return (
     <div className="min-h-svh bg-background">
-      <header className="sticky top-0 z-10 border-b bg-card/80 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-6xl items-center gap-6 px-4">
-          <span className="flex items-center gap-2 font-medium">
-            <Building2 className="size-5 text-primary" aria-hidden />
-            <span className="hidden sm:inline">Diagramas UML</span>
+      {/*
+        Una sola barra: columna fija a la izquierda en pantallas anchas y cinta horizontal en las
+        estrechas. El menú de usuario se coloca solo (al final de la fila o abajo del todo), así que
+        existe una única vez en la página.
+      */}
+      <aside
+        className={cn(
+          'flex items-center gap-2 border-b border-border/60 bg-sidebar px-3 py-2',
+          'lg:fixed lg:inset-y-0 lg:left-0 lg:z-20 lg:w-60 lg:flex-col lg:items-stretch lg:gap-0',
+          'lg:border-r lg:border-b-0 lg:p-0',
+        )}
+      >
+        <div className="flex shrink-0 items-center gap-2.5 lg:px-5 lg:py-4">
+          <span className="flex size-8 items-center justify-center rounded-sm bg-primary text-primary-foreground">
+            <Boxes className="size-5" aria-hidden />
           </span>
+          <span className="hidden font-heading text-sm leading-tight font-semibold tracking-tight sm:block">
+            Diagramas
+            <span className="block text-[11px] font-normal tracking-widest text-muted-foreground uppercase">
+              UML Studio
+            </span>
+          </span>
+        </div>
 
-          <nav aria-label="Principal" className="flex flex-1 items-center gap-1">
-            {items.map(({ to, label, icon: Icon }) => (
-              <NavLink
-                key={to}
-                to={to}
-                className={({ isActive }) =>
-                  cn(
-                    'flex items-center gap-2 rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground',
-                    isActive && 'bg-accent font-medium text-accent-foreground',
-                  )
-                }
-              >
-                <Icon className="size-4" aria-hidden />
-                <span className="hidden sm:inline">{label}</span>
-              </NavLink>
-            ))}
-          </nav>
+        <nav
+          aria-label="Principal"
+          className="flex flex-1 gap-1 overflow-x-auto lg:flex-col lg:gap-0.5 lg:overflow-visible lg:px-3"
+        >
+          {items.map(({ to, label, icon: Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                cn(
+                  'relative flex shrink-0 items-center gap-2.5 rounded-sm px-3 py-2 text-sm',
+                  'text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground',
+                  isActive && 'bg-accent font-medium text-accent-foreground',
+                )
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  {/* Marca de la sección activa: un filo, no un relleno. */}
+                  <span
+                    className={cn(
+                      'absolute left-0 h-5 w-0.5 rounded-full bg-primary transition-opacity',
+                      isActive ? 'opacity-100' : 'opacity-0',
+                    )}
+                    aria-hidden
+                  />
+                  <Icon className="size-4" aria-hidden />
+                  <span className="hidden sm:inline">{label}</span>
+                </>
+              )}
+            </NavLink>
+          ))}
+        </nav>
 
+        <div className="shrink-0 lg:border-t lg:border-border/60 lg:p-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-2 px-2" aria-label="Menú de usuario">
-                <span className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
+              <Button variant="ghost" className="w-full justify-start gap-2.5 px-2" aria-label="Menú de usuario">
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-sm bg-primary/15 text-xs font-semibold text-primary">
                   {initials(displayName)}
                 </span>
-                <span className="hidden text-sm sm:inline">{displayName}</span>
+                <span className="hidden truncate text-sm sm:inline">{displayName}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
@@ -153,10 +187,12 @@ export function AppLayout() {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-      </header>
+      </aside>
 
-      <main className="mx-auto max-w-6xl px-4 py-8">
-        <Outlet />
+      <main className="px-5 py-8 lg:ml-60 lg:px-10">
+        <div className="mx-auto max-w-6xl">
+          <Outlet />
+        </div>
       </main>
     </div>
   )

@@ -131,6 +131,7 @@ export function DiagramCanvas({
         // Borrar solo por la acción explícita: cada baja tiene que pasar por el vocabulario de operaciones
         // y por la validación del servidor, nunca por una tecla.
         deleteKeyCode={null}
+        colorMode="dark"
         fitView
         fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
         minZoom={0.1}
@@ -139,7 +140,7 @@ export function DiagramCanvas({
       >
         <Background />
         <Controls showInteractive={false} />
-        <MiniMap pannable zoomable className="!bg-secondary" />
+        <MiniMap pannable zoomable className="!bg-card !border !border-border" maskColor="oklch(0.165 0.014 285 / 70%)" />
       </ReactFlow>
     </div>
   )

@@ -122,8 +122,9 @@ test('el panel de propiedades sobrevive a agregar y editar un atributo', async (
   await expect(page.getByLabel('Nombre de la clase')).toBeVisible()
   await expect(panel.getByRole('textbox', { name: /Nombre del atributo/ })).toBeVisible()
 
-  await panel.getByRole('textbox', { name: /Tipo del atributo/ }).fill('Integer')
-  await page.getByLabel('Nombre de la clase').click()
+  // El tipo es un desplegable con los tipos que admite el applier, no un campo libre.
+  await panel.getByRole('combobox', { name: /Tipo del atributo/ }).click()
+  await page.getByRole('option', { name: 'Integer', exact: true }).click()
 
   await expect(page.locator('.react-flow__node').first()).toContainText('atributo1: Integer')
   await expect(page.getByLabel('Nombre de la clase')).toBeVisible()

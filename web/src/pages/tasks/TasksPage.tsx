@@ -35,10 +35,10 @@ const FILTROS: { value: TaskStatus | ''; label: string }[] = [
 ]
 
 const COLOR: Record<TaskStatus, string> = {
-  PENDING: 'border-amber-300 bg-amber-50 text-amber-800',
-  IN_PROGRESS: 'border-sky-300 bg-sky-50 text-sky-800',
-  COMPLETED: 'border-emerald-300 bg-emerald-50 text-emerald-800',
-  FAILED: 'border-destructive/40 bg-destructive/5 text-destructive',
+  PENDING: 'border-amber-400/30 bg-amber-400/10 text-amber-300',
+  IN_PROGRESS: 'border-sky-400/30 bg-sky-400/10 text-sky-300',
+  COMPLETED: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
+  FAILED: 'border-destructive/40 bg-destructive/10 text-destructive',
 }
 
 /** CU-21 Gestionar tareas: lo que me toca y lo que asigné a otras personas. */

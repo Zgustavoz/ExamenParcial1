@@ -37,7 +37,7 @@ test('CU-21: crear, editar, reasignar y eliminar una tarea', async ({ page }) =>
   await login(page)
   await seedDiagram(page, suffix)
 
-  await page.getByRole('link', { name: 'Tareas' }).click()
+  await page.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Tareas', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Tareas' })).toBeVisible()
 
   // --- Crear, eligiendo proyecto, diagrama y persona ---
@@ -79,7 +79,7 @@ test('CU-21: quien solo tiene la tarea asignada puede avanzarla, pero no editarl
   await login(page)
   await seedDiagram(page, suffix)
 
-  await page.getByRole('link', { name: 'Tareas' }).click()
+  await page.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Tareas', exact: true }).click()
   await page.getByRole('button', { name: 'Nueva tarea' }).click()
   await page.getByLabel('Título').fill(`Para otro ${suffix}`)
   await page.getByLabel('Proyecto').selectOption({ label: `Tareas ${suffix}` })
@@ -93,7 +93,7 @@ test('CU-21: quien solo tiene la tarea asignada puede avanzarla, pero no editarl
   await page.getByRole('menuitem', { name: 'Cerrar sesión' }).click()
   await login(page, 'developer')
 
-  await page.getByRole('link', { name: 'Tareas' }).click()
+  await page.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Tareas', exact: true }).click()
   const fila = page.locator('li', { hasText: `Para otro ${suffix}` }).first()
   await expect(fila).toContainText('De Diseñador Demo')
 
