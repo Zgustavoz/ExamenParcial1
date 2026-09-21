@@ -29,6 +29,13 @@ public class UserController {
         return users.list(CurrentUser.get());
     }
 
+    /** CU-21: a quién se le puede asignar una tarea. Lo necesita cualquier rol, no solo el administrador. */
+    @GetMapping("/assignable")
+    @PreAuthorize("isAuthenticated()")
+    public List<UserService.AssignableUser> assignable() {
+        return users.assignable(CurrentUser.get());
+    }
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public UserDto create(@Valid @RequestBody UserRequest req) {

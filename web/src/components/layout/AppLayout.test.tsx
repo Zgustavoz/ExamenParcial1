@@ -42,13 +42,13 @@ describe('marco de la aplicación', () => {
   it('el COMPANY_ADMIN ve Usuarios y Proyectos, no Empresas', async () => {
     signIn('COMPANY_ADMIN')
     renderApp('/company/users')
-    expect(await navLinks()).toEqual(['Usuarios', 'Proyectos', 'Notificaciones'])
+    expect(await navLinks()).toEqual(['Usuarios', 'Proyectos', 'Tareas', 'Notificaciones'])
   })
 
   it('el DESIGNER solo ve Proyectos y Notificaciones', async () => {
     signIn('DESIGNER')
     renderApp('/projects')
-    expect(await navLinks()).toEqual(['Proyectos', 'Notificaciones'])
+    expect(await navLinks()).toEqual(['Proyectos', 'Tareas', 'Notificaciones'])
   })
 
   it('cerrar sesión limpia el store y lleva al login', async () => {

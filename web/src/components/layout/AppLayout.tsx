@@ -1,4 +1,4 @@
-import { Bell, Building2, FolderKanban, LogOut, Users } from 'lucide-react'
+import { Bell, Building2, FolderKanban, ListChecks, LogOut, Users } from 'lucide-react'
 import { useEffect } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -32,6 +32,12 @@ const NAV: NavItem[] = [
     to: '/projects',
     label: 'Proyectos',
     icon: FolderKanban,
+    roles: ['COMPANY_ADMIN', 'DESIGNER', 'DEVELOPER'],
+  },
+  {
+    to: '/tasks',
+    label: 'Tareas',
+    icon: ListChecks,
     roles: ['COMPANY_ADMIN', 'DESIGNER', 'DEVELOPER'],
   },
   {

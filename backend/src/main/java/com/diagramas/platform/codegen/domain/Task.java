@@ -18,6 +18,8 @@ public class Task {
     public static final String CODE_GENERATION = "CODE_GENERATION";
     public static final String XMI_IMPORT = "XMI_IMPORT";
     public static final String XMI_EXPORT = "XMI_EXPORT";
+    /** CU-21: tarea creada por una persona, no por el sistema. */
+    public static final String MANUAL = "MANUAL";
 
     public static final String PENDING = "PENDING";
     public static final String IN_PROGRESS = "IN_PROGRESS";

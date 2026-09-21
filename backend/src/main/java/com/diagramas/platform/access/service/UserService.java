@@ -33,6 +33,21 @@ public class UserService {
         this.encoder = encoder;
     }
 
+    /**
+     * CU-21: a quién se puede asignar una tarea. Cualquier rol necesita esta lista para asignar, así que
+     * devuelve solo lo imprescindible para elegir a una persona, no la ficha completa de CU-03.
+     */
+    @Transactional(readOnly = true)
+    public List<AssignableUser> assignable(AuthPrincipal p) {
+        return users.findByCompanyIdOrderByUsernameAsc(p.companyId()).stream()
+                .filter(User::isActive)
+                .map(u -> new AssignableUser(u.getId(), u.getUsername(),
+                        u.getFullName() == null || u.getFullName().isBlank() ? u.getUsername() : u.getFullName()))
+                .toList();
+    }
+
+    public record AssignableUser(java.util.UUID id, String username, String displayName) {}
+
     @Transactional(readOnly = true)
     public List<UserDto> list(AuthPrincipal p) {
         return users.findByCompanyIdOrderByUsernameAsc(p.companyId()).stream().map(UserDto::of).toList();

@@ -80,6 +80,10 @@ export const routes: RouteObject[] = [
             ],
           },
           {
+            path: '/tasks',
+            lazy: async () => ({ Component: (await import('@/pages/tasks/TasksPage')).default }),
+          },
+          {
             path: '/notifications',
             lazy: async () => ({ Component: (await import('@/pages/notifications/NotificationsPage')).default }),
           },

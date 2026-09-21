@@ -7,6 +7,7 @@ import {
   Download,
   Eye,
   GitBranch,
+  ListChecks,
   LoaderCircle,
   Plus,
   Save,
@@ -15,7 +16,7 @@ import {
   Wifi,
   WifiOff,
 } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { DiagramCanvas } from '@/components/diagram/DiagramCanvas'
@@ -36,6 +37,11 @@ import { RelationshipPanel } from './RelationshipPanel'
 import { useDiagramEditor } from './use-diagram-editor'
 
 /** CU-07 … CU-10: edición manual del diagrama de clases. */
+/** El diálogo solo hace falta al pulsar «Tarea»: así no carga el editor con lo que casi nunca se usa. */
+const TaskFormDialog = lazy(() =>
+  import('@/pages/tasks/TaskFormDialog').then((m) => ({ default: m.TaskFormDialog })),
+)
+
 export default function DiagramEditorPage() {
   const { diagramId = '' } = useParams()
   const navigate = useNavigate()
@@ -47,6 +53,7 @@ export default function DiagramEditorPage() {
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
   const [pendingConnection, setPendingConnection] = useState<Connection | null>(null)
   const [panel, setPanel] = useState<'properties' | 'copilot'>('properties')
+  const [creatingTask, setCreatingTask] = useState(false)
 
   const held = useRef<string | null>(null)
 
@@ -195,6 +202,10 @@ export default function DiagramEditorPage() {
             )}
             XMI
           </Button>
+          <Button variant="outline" size="sm" onClick={() => setCreatingTask(true)}>
+            <ListChecks className="size-4" aria-hidden />
+            Tarea
+          </Button>
           <Button variant="outline" size="sm" asChild>
             <Link to={`/diagrams/${diagramId}/code`}>
               <Code2 className="size-4" aria-hidden />
@@ -305,6 +316,13 @@ export default function DiagramEditorPage() {
           onCancel={() => setPendingConnection(null)}
           onCreate={createRelationship}
         />
+      )}
+
+      {/* CU-21: crear una tarea sin salir del diagrama que se está editando. */}
+      {creatingTask && (
+        <Suspense fallback={null}>
+          <TaskFormDialog open diagramId={diagramId} onOpenChange={(open) => !open && setCreatingTask(false)} />
+        </Suspense>
       )}
     </>
   )

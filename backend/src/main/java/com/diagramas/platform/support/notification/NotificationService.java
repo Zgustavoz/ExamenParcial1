@@ -25,6 +25,7 @@ public class NotificationService {
 
     public static final String TASK_ASSIGNED = "TASK_ASSIGNED";
     public static final String CODE_READY = "CODE_READY";
+    public static final String TASK_STATUS_CHANGED = "TASK_STATUS_CHANGED";
 
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
 

@@ -12,8 +12,13 @@ type Query {
   diagram(id: ID!): Diagram
   "CU-13: historial de conversaciones IA del usuario para un diagrama"
   aiChats(diagramId: ID!): [AiChat!]!
-  tasks(diagramId: ID): [Task!]!
+  "CU-21: filtrable por diagrama y por estado"
+  tasks(diagramId: ID, status: String): [Task!]!
   task(id: ID!): Task
+  "CU-21: las asignadas a mí, más las automáticas que lancé yo"
+  myTasks(status: String): [Task!]!
+  "CU-21: las tareas manuales que yo asigné a otras personas"
+  tasksCreatedByMe: [Task!]!
 }
 
 type Mutation {
@@ -29,6 +34,17 @@ type Mutation {
   generateBackendCode(diagramId: ID!, language: String!): Task!
   "CU-20"
   generateSequenceDiagram(sourceDiagramId: ID!): Diagram!
+  "CU-21: crea una tarea manual y avisa a quien se le asigna"
+  createTask(input: NewTaskInput!): Task!
+  "CU-21: PENDING → IN_PROGRESS → COMPLETED"
+  updateTaskStatus(id: ID!, status: String!): Task!
+}
+
+input NewTaskInput {
+  diagramId: ID!
+  assignedTo: ID!
+  title: String!
+  description: String
 }
 
 type Diagram {

@@ -34,4 +34,5 @@ export async function updateFcmToken(token: string): Promise<void> {
 export const NOTIFICATION_LABEL: Record<string, string> = {
   TASK_ASSIGNED: 'Tarea asignada',
   CODE_READY: 'Código listo',
+  TASK_STATUS_CHANGED: 'Tarea actualizada',
 }
