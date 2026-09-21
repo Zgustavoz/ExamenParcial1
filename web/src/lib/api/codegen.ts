@@ -10,7 +10,10 @@ export interface Task {
   status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED'
   resultJson: Record<string, unknown> | null
   assignedTo: string | null
+  /** Nombre de la persona asignada; el backend lo resuelve solo si se pide (CU-21). */
+  assignedToName?: string | null
   createdBy: string | null
+  createdByName?: string | null
   createdAt: string
   startedAt: string | null
   completedAt: string | null

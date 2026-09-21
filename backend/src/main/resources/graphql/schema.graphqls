@@ -38,6 +38,16 @@ type Mutation {
   createTask(input: NewTaskInput!): Task!
   "CU-21: PENDING → IN_PROGRESS → COMPLETED"
   updateTaskStatus(id: ID!, status: String!): Task!
+  "CU-21: cambia título, descripción y a quién está asignada"
+  updateTask(id: ID!, input: EditTaskInput!): Task!
+  "CU-21: devuelve el id de la tarea eliminada"
+  deleteTask(id: ID!): ID!
+}
+
+input EditTaskInput {
+  assignedTo: ID!
+  title: String!
+  description: String
 }
 
 input NewTaskInput {
@@ -85,7 +95,10 @@ type Task {
   status: String!
   resultJson: JSON
   assignedTo: ID
+  "CU-21: nombre de la persona asignada, resuelto solo si se pide"
+  assignedToName: String
   createdBy: ID
+  createdByName: String
   createdAt: String!
   startedAt: String
   completedAt: String

@@ -6,7 +6,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { toast } from 'sonner'
 import type { Task } from '@/lib/api/codegen'
 import { ApiError } from '@/lib/api/errors'
-import { listMyTasks, listTasksCreatedByMe, updateTaskStatus } from '@/lib/api/tasks'
+import { deleteTask, listMyTasks, listTasksCreatedByMe, updateTaskStatus } from '@/lib/api/tasks'
+import { useAuthStore } from '@/stores/auth-store'
 import { queryClient } from '@/lib/query-client'
 import TasksPage from './TasksPage'
 
@@ -15,6 +16,7 @@ vi.mock('@/lib/api/tasks', async (importOriginal) => ({
   listMyTasks: vi.fn(),
   listTasksCreatedByMe: vi.fn(),
   updateTaskStatus: vi.fn(),
+  deleteTask: vi.fn(),
 }))
 vi.mock('sonner', () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }))
 
@@ -28,7 +30,9 @@ function tarea(cambios: Partial<Task> = {}): Task {
     status: 'PENDING',
     resultJson: null,
     assignedTo: 'u2',
+    assignedToName: 'Bruno Dev',
     createdBy: 'u1',
+    createdByName: 'Ana Jefa',
     createdAt: '2026-09-20T10:00:00Z',
     startedAt: null,
     completedAt: null,
@@ -134,5 +138,83 @@ describe('TasksPage (CU-21)', () => {
     montar()
 
     expect(await screen.findByText('No tiene tareas asignadas.')).toBeInTheDocument()
+  })
+
+  it('muestra quién encargó la tarea que me toca', async () => {
+    montar()
+
+    expect(await screen.findByText(/De Ana Jefa/)).toBeInTheDocument()
+  })
+
+  it('en «Creadas por mí» muestra a quién se la asigné', async () => {
+    vi.mocked(listTasksCreatedByMe).mockResolvedValue([tarea()])
+    montar()
+    await screen.findByText('Revisar el modelo')
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Creadas por mí' }))
+
+    expect(await screen.findByText(/Para Bruno Dev/)).toBeInTheDocument()
+  })
+
+  it('quien encargó la tarea puede editarla y eliminarla', async () => {
+    useAuthStore.getState().login('jwt', {
+      id: 'u1',
+      username: 'ana',
+      email: 'ana@demo.com',
+      fullName: 'Ana Jefa',
+      roles: ['DESIGNER'],
+      companyId: 'c1',
+      active: true,
+      createdAt: '2026-01-01T00:00:00Z',
+    })
+    montar()
+
+    expect(await screen.findByRole('button', { name: /Editar la tarea/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Eliminar' })).toBeInTheDocument()
+    useAuthStore.getState().logout()
+  })
+
+  it('quien solo la tiene asignada no puede editarla ni eliminarla', async () => {
+    useAuthStore.getState().login('jwt', {
+      id: 'u2',
+      username: 'bruno',
+      email: 'bruno@demo.com',
+      fullName: 'Bruno Dev',
+      roles: ['DEVELOPER'],
+      companyId: 'c1',
+      active: true,
+      createdAt: '2026-01-01T00:00:00Z',
+    })
+    montar()
+    await screen.findByText('Revisar el modelo')
+
+    expect(screen.queryByRole('button', { name: /Editar la tarea/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Eliminar' })).not.toBeInTheDocument()
+    useAuthStore.getState().logout()
+  })
+
+  it('eliminar pide confirmación antes de borrar', async () => {
+    useAuthStore.getState().login('jwt', {
+      id: 'u1',
+      username: 'ana',
+      email: 'ana@demo.com',
+      fullName: 'Ana Jefa',
+      roles: ['DESIGNER'],
+      companyId: 'c1',
+      active: true,
+      createdAt: '2026-01-01T00:00:00Z',
+    })
+    vi.mocked(deleteTask).mockResolvedValue('t1')
+    montar()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Eliminar' }))
+    expect(await screen.findByRole('alertdialog')).toHaveTextContent(/Revisar el modelo/)
+    expect(deleteTask).not.toHaveBeenCalled()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Eliminar la tarea' }))
+
+    await waitFor(() => expect(deleteTask).toHaveBeenCalled())
+    expect(vi.mocked(deleteTask).mock.calls[0][0]).toBe('t1')
+    useAuthStore.getState().logout()
   })
 })
