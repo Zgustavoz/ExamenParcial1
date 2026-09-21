@@ -9,11 +9,9 @@ import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.MessagingErrorCode;
 import com.google.firebase.messaging.Notification;
-import java.io.FileInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +19,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Selecciona el {@link PushSender}: FCM si {@code FCM_CREDENTIALS_PATH} apunta a un archivo existente;
+ * Selecciona el {@link PushSender}: FCM si hay credenciales de Firebase, ya sea en una sola línea en
+ * {@code FCM_CREDENTIALS_JSON} (producción) o en el archivo de {@code FCM_CREDENTIALS_PATH} (desarrollo);
  * si no, un sender que solo registra en log (el flujo principal nunca depende del push).
  */
 @Configuration
@@ -31,12 +30,18 @@ public class PushConfig {
 
     @Bean
     PushSender pushSender(AppProperties props) {
-        String path = props.fcm().credentialsPath();
-        if (path == null || path.isBlank() || !Files.isRegularFile(Path.of(path))) {
-            log.warn("FCM_CREDENTIALS_PATH no configurado o inexistente: las notificaciones push quedan deshabilitadas");
+        byte[] credentials;
+        try {
+            credentials = FcmCredentials.resolve(props.fcm().credentialsJson(), props.fcm().credentialsPath()).orElse(null);
+        } catch (IllegalArgumentException e) {
+            log.error("Credenciales de Firebase inválidas; push deshabilitado: {}", e.getMessage());
+            return (token, title, body, data) -> log.debug("Push omitido (credenciales inválidas)");
+        }
+        if (credentials == null) {
+            log.warn("Sin credenciales de Firebase (FCM_CREDENTIALS_JSON o FCM_CREDENTIALS_PATH): las notificaciones push quedan deshabilitadas");
             return (token, title, body, data) -> log.debug("Push omitido (FCM deshabilitado)");
         }
-        try (InputStream in = new FileInputStream(path)) {
+        try (InputStream in = new ByteArrayInputStream(credentials)) {
             FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.fromStream(in))
                     .build();
