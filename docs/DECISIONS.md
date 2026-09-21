@@ -178,8 +178,9 @@ notificaciones push y modo offline con SQLite (CU-18). Por decisión del equipo 
 pantalla con un botón de micrófono**, cuyo único objetivo es demostrar que el código que genera la
 plataforma funciona de verdad: se dicta «registra un cliente…» y el registro aparece en la API generada.
 
-CU-18 (offline y sincronización) y el CP-08 que lo acompaña quedan, por tanto, **sin implementar**. El resto
-del sistema no cambia.
+El modo offline (CU-18, CP-08) se recortó a lo que el móvil hace, que es dictar órdenes: ver [D-36](#d-36--las-órdenes-dictadas-sin-conexión-se-guardan-en-sqlite-y-se-envían-al-volver).
+Las notificaciones push y la consulta de diagramas siguen fuera de esta pantalla. El resto del sistema no
+cambia.
 
 ### D-34 — El generador emite también repositorios y controladores REST
 
@@ -206,3 +207,38 @@ la demostración no depende de que el LLM esté disponible. La respuesta dice cu
 Por seguridad, la ruta que se ejecuta tiene que ser una de las que el diagrama expone: una ruta inventada o
 absoluta se rechaza con `AI_INVALID_RESPONSE`, para que una respuesta del LLM no pueda dirigir la petición
 a otro servidor.
+
+### D-36 — Las órdenes dictadas sin conexión se guardan en SQLite y se envían al volver
+
+CU-18 pide que, sin conexión, lo que el usuario hace se guarde en el dispositivo y se envíe al reconectar.
+En este móvil lo único que el usuario «hace» es dictar una orden, así que eso es lo que se guarda: una tabla
+`pending_ops` en SQLite (`sqflite`) con la orden, el diagrama, el estado (`PENDING | SYNCING | DONE |
+FAILED`), los intentos y el último error. Se descartó `CONFLICT` de la sección 11.2: una orden es un comando,
+no un guardado con `baseVersion`, y no puede chocar con la versión de nadie.
+
+- **Cuándo se guarda.** Si `connectivity_plus` dice que no hay red, la orden va directa a la cola sin llamar al
+  servidor (evita esperar 30 s de *timeout*). Si dice que hay red pero el envío falla por la red o porque el
+  backend generado no responde (`NETWORK_ERROR`, `AI_UNAVAILABLE`, `AI_TIMEOUT`, `INTERNAL_ERROR`), también
+  se guarda: una wifi sin salida a internet cuenta como conectada y no hay que perder la orden por eso.
+- **Cuándo NO se guarda.** Un rechazo del servidor («no entiendo la orden», validación) se muestra al usuario
+  y no se encola: reintentarlo daría lo mismo. Si llega estando ya en cola, la orden pasa a `FAILED` y se
+  sigue con la siguiente.
+- **Cuándo se envía.** Al recuperar la red, cada 20 s mientras haya pendientes (por si la red no cambió pero el
+  servidor volvió), al volver a entrar en la app y con el botón «Sincronizar ahora».
+- **En orden y de una en una.** Se envían en el orden en que se dictaron. Un fallo de red detiene el envío y
+  deja el resto pendiente, porque lo que va detrás también fallaría y enviarlo antes rompería el orden. Una
+  orden nueva dictada mientras hay pendientes va detrás de ellas.
+- **Cada usuario, lo suyo.** Cada orden guarda `empresa/usuario` y solo se envía con la sesión de quien la
+  dictó: en un móvil compartido, otro usuario no ejecuta órdenes ajenas.
+- **Sesión vencida.** El token no se guarda en el dispositivo. Si vence antes de reconectar, el servidor
+  responde `UNAUTHORIZED`, las órdenes se conservan y la pantalla pide volver a entrar; al hacerlo, se envían.
+
+Limitaciones asumidas:
+
+- **Entrega «al menos una vez».** Si la petición llegó al servidor pero la respuesta se perdió, la orden se
+  reenvía y podría registrarse dos veces. Evitarlo exige una clave de idempotencia en el servidor, que hoy no
+  existe.
+- **Sin sesión no se puede empezar offline.** Entrar exige red; el modo offline cubre perder la conexión con la
+  sesión ya abierta, y conserva lo pendiente si la app se cierra.
+- **El dictado depende del dispositivo.** El reconocimiento de voz de Android puede necesitar internet; sin
+  él, se puede escribir la orden y se guarda igual.

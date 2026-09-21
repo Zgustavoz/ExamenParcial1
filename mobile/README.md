@@ -4,8 +4,11 @@ Una sola pantalla con un botón de micrófono. Su único trabajo es **demostrar 
 funciona**: se dicta «registra un cliente con nombre Juan» y el registro aparece en la API generada, que se
 puede comprobar con Postman.
 
-> No es el cliente completo de la sección 11.2 del enunciado (consulta de diagramas, modo offline con
-> SQLite, notificaciones push). Ese alcance se redujo a propósito: ver [D-33](../docs/DECISIONS.md).
+Si se pierde la conexión, **la orden se guarda en la base SQLite del dispositivo y se envía sola al volver**
+(ver «Modo offline» más abajo).
+
+> No es el cliente completo de la sección 11.2 del enunciado (consulta de diagramas, notificaciones push).
+> Ese alcance se redujo a propósito: ver [D-33](../docs/DECISIONS.md). El modo offline sí está: [D-36](../docs/DECISIONS.md).
 
 ## Cómo funciona
 
@@ -85,9 +88,41 @@ lista los clientes
 Si la orden la interpretó el respaldo local en vez del asistente, la tarjeta del resultado lo dice
 («interpretado sin IA»), para no dar por hecho lo que no fue.
 
+## Modo offline
+
+Para probarlo con el emulador: entre, y active el **modo avión** (o corte la wifi del emulador).
+
+1. Aparece el aviso **«Sin conexión»**.
+2. Dicte o escriba una orden y pulse **Enviar la orden**: no se envía, queda en la sección **«Órdenes en el
+   dispositivo»** como *Pendiente de envío*. No se pierde aunque cierre la app.
+3. Quite el modo avión. En unos segundos la orden se envía sola, pasa a **Enviada** con la respuesta del
+   servidor, y aparece un aviso «Se envió 1 orden guardada». También puede pulsar **Sincronizar ahora**.
+4. Compruébelo en Postman: `GET http://localhost:8090/api/clientes` muestra el registro.
+
+Qué pasa con cada caso:
+
+| Situación | Resultado |
+|---|---|
+| Sin red al enviar | Se guarda y se envía al volver |
+| Hay red pero el servidor o el backend generado no responde | Se guarda y se reintenta cada 20 s |
+| Varias órdenes sin red | Se envían **en el orden en que se dictaron** |
+| El servidor no entiende una orden ya en cola | Queda como *Rechazada*; las demás se envían |
+| La sesión venció mientras tanto | Las órdenes siguen guardadas; «Entrar de nuevo» las envía |
+
+Las órdenes se guardan por usuario: nadie envía las de otro. Ver [D-36](../docs/DECISIONS.md) para las
+limitaciones (entrega «al menos una vez», hay que haber entrado antes de perder la red).
+
 ## Pruebas
 
 ```powershell
-flutter test      # 4 pruebas de la pantalla, sin red ni micrófono
+flutter test      # servicio de sincronización y pantalla; sin red ni micrófono
 flutter analyze
+
+cd test_sqlite    # el almacén de órdenes contra un SQLite de verdad
+flutter pub get
+flutter test
 ```
+
+La prueba de SQLite está en `test_sqlite/`, un paquete aparte a propósito: la librería que hace falta para
+ejecutar SQLite en el PC (`sqflite_common_ffi` → `sqlite3`) descarga un binario nativo en cada compilación, y
+dentro de la app rompía la compilación del APK de Android.

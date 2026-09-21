@@ -46,3 +46,10 @@ app.*.map.json
 
 # Artefactos de compilación
 /build/
+
+# Paquete aparte de pruebas de SQLite (ver test_sqlite/): sus artefactos de compilación, incluido sqlite3.dll
+/test_sqlite/build/
+/test_sqlite/.dart_tool/
+/test_sqlite/pubspec.lock
+# Caché de Kotlin/Gradle
+/android/.kotlin/

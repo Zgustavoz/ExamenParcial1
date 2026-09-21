@@ -1,15 +1,24 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 import 'api.dart';
+import 'offline/pending_op.dart';
+import 'offline/pending_store.dart';
+import 'offline/sync_service.dart';
 
 /// Pantalla única: se elige el diagrama, se dicta la orden y se ve lo que respondió el backend generado.
+///
+/// Sin conexión, la orden se guarda en el dispositivo y se envía sola al volver (ver [SyncService]).
 class CommandPage extends StatefulWidget {
-  const CommandPage({super.key, required this.api});
+  const CommandPage({super.key, required this.api, this.sync});
 
   final Api api;
+
+  /// El servicio de órdenes guardadas. Si no se pasa, la pantalla crea uno en memoria (pruebas).
+  final SyncService? sync;
 
   @override
   State<CommandPage> createState() => _CommandPageState();
@@ -21,6 +30,9 @@ class _CommandPageState extends State<CommandPage> {
   final _username = TextEditingController(text: 'designer');
   final _password = TextEditingController();
 
+  late final SyncService _sync;
+  late final bool _ownsSync;
+
   String? _token;
   List<({String id, String name})> _diagrams = const [];
   String? _diagramId;
@@ -29,14 +41,33 @@ class _CommandPageState extends State<CommandPage> {
   bool _listening = false;
   bool _busy = false;
   String? _error;
+  String? _notice;
   CommandResult? _result;
 
   @override
+  void initState() {
+    super.initState();
+    _ownsSync = widget.sync == null;
+    _sync = widget.sync ?? SyncService(api: widget.api, store: MemoryPendingStore(), retryEvery: null);
+    _sync.onSynced = _avisarEnviadas;
+    if (_ownsSync) unawaited(_sync.start());
+  }
+
+  @override
   void dispose() {
+    _sync.onSynced = null;
+    if (_ownsSync) _sync.dispose();
     _instruction.dispose();
     _username.dispose();
     _password.dispose();
     super.dispose();
+  }
+
+  void _avisarEnviadas(int n) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(n == 1 ? 'Se envió 1 orden guardada.' : 'Se enviaron $n órdenes guardadas.')),
+    );
   }
 
   Future<void> _run(Future<void> Function() action) async {
@@ -60,11 +91,25 @@ class _CommandPageState extends State<CommandPage> {
       _token = token;
       _diagrams = diagrams;
       _diagramId = diagrams.isEmpty ? null : diagrams.first.id;
+      _notice = null;
     });
+    // Las órdenes que quedaron guardadas de otra vez se cargan y, si hay red, se envían.
+    await _sync.signIn(Session(token: token, owner: '${Api.companySlug}/${_username.text.trim()}'));
     if (_diagramId != null) await _loadEntities();
   });
 
+  /// Con la sesión vencida las órdenes siguen guardadas: se vuelve a la pantalla de entrada para enviarlas.
+  void _entrarDeNuevo() {
+    _sync.signOut();
+    setState(() {
+      _token = null;
+      _password.clear();
+    });
+  }
+
   Future<void> _loadEntities() async {
+    // Sin conexión no se puede preguntar; el usuario puede dictar igualmente contra lo que ya tenía a la vista.
+    if (!_sync.online) return;
     final names = await widget.api.entities(_token!, _diagramId!);
     if (mounted) setState(() => _entities = names);
   }
@@ -100,8 +145,32 @@ class _CommandPageState extends State<CommandPage> {
   }
 
   Future<void> _send() => _run(() async {
-    final result = await widget.api.command(_token!, _diagramId!, _instruction.text.trim());
-    setState(() => _result = result);
+    final diagramId = _diagramId!;
+    final nombre = _diagrams.firstWhere((d) => d.id == diagramId).name;
+    final outcome = await _sync.submit(
+      diagramId: diagramId,
+      diagramName: nombre,
+      instruction: _instruction.text.trim(),
+    );
+
+    final guardada = outcome.queued;
+    if (guardada == null) {
+      setState(() {
+        _result = outcome.result;
+        _notice = null;
+      });
+      return;
+    }
+    // Quedó en el dispositivo: se limpia el campo para poder dictar la siguiente sin reenviar esta.
+    setState(() {
+      _result = null;
+      _notice = !_sync.online
+          ? 'Sin conexión: la orden quedó guardada en el dispositivo y se enviará cuando vuelva.'
+          : guardada.error != null
+          ? 'No se pudo enviar ahora. ${guardada.error} La orden quedó guardada y se reintentará.'
+          : 'La orden quedó en cola detrás de las que estaban pendientes y se envía en orden.';
+      _instruction.clear();
+    });
   });
 
   @override
@@ -109,21 +178,54 @@ class _CommandPageState extends State<CommandPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Backend generado')),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (_token == null) ..._loginFields() else ..._commandFields(),
-              if (_error != null) ...[
-                const SizedBox(height: 16),
-                _Aviso(texto: _error!, color: Theme.of(context).colorScheme.errorContainer),
+        child: ListenableBuilder(
+          listenable: _sync,
+          builder: (context, _) => SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (_token != null && !_sync.online) ...[
+                  _Aviso(
+                    icono: Icons.cloud_off,
+                    texto:
+                        'Sin conexión. Las órdenes que dicte se guardarán en el dispositivo y se enviarán cuando vuelva.',
+                    color: Theme.of(context).colorScheme.tertiaryContainer,
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                if (_token != null && _sync.sessionExpired) ...[
+                  _Aviso(
+                    icono: Icons.lock_clock,
+                    texto: 'Su sesión venció. Las órdenes siguen guardadas: entre de nuevo para enviarlas.',
+                    color: Theme.of(context).colorScheme.errorContainer,
+                    accion: TextButton(onPressed: _entrarDeNuevo, child: const Text('Entrar de nuevo')),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                if (_token == null) ..._loginFields() else ..._commandFields(),
+                if (_notice != null) ...[
+                  const SizedBox(height: 16),
+                  _Aviso(
+                    icono: Icons.save_alt,
+                    texto: _notice!,
+                    color: Theme.of(context).colorScheme.secondaryContainer,
+                  ),
+                ],
+                if (_error != null) ...[
+                  const SizedBox(height: 16),
+                  _Aviso(texto: _error!, color: Theme.of(context).colorScheme.errorContainer),
+                ],
+                if (_result != null) ...[
+                  const SizedBox(height: 16),
+                  _ResultCard(result: _result!),
+                ],
+                if (_token != null && _sync.ops.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  _OrdenesGuardadas(sync: _sync),
+                ],
               ],
-              if (_result != null) ...[
-                const SizedBox(height: 16),
-                _ResultCard(result: _result!),
-              ],
-            ],
+            ),
           ),
         ),
       ),
@@ -219,17 +321,103 @@ class _CommandPageState extends State<CommandPage> {
 }
 
 class _Aviso extends StatelessWidget {
-  const _Aviso({required this.texto, required this.color});
+  const _Aviso({required this.texto, required this.color, this.icono, this.accion});
 
   final String texto;
   final Color color;
+  final IconData? icono;
+  final Widget? accion;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)),
-      child: Text(texto),
+      child: Row(
+        children: [
+          if (icono != null) ...[Icon(icono, size: 20), const SizedBox(width: 12)],
+          Expanded(child: Text(texto)),
+          ?accion,
+        ],
+      ),
+    );
+  }
+}
+
+/// Las órdenes que están en el dispositivo: las que esperan, las que se enviaron al volver la conexión y las
+/// que el servidor rechazó.
+class _OrdenesGuardadas extends StatelessWidget {
+  const _OrdenesGuardadas({required this.sync});
+
+  final SyncService sync;
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context).textTheme;
+    // Lo más reciente arriba.
+    final ops = sync.ops.reversed.toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(child: Text('Órdenes en el dispositivo', style: tema.titleMedium)),
+            if (sync.pendingCount > 0)
+              TextButton.icon(
+                onPressed: sync.syncing ? null : () => sync.sync(),
+                icon: sync.syncing
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.sync),
+                label: Text(sync.syncing ? 'Enviando…' : 'Sincronizar ahora'),
+              ),
+          ],
+        ),
+        for (final op in ops) _OrdenTile(op: op, onDiscard: () => sync.discard(op)),
+      ],
+    );
+  }
+}
+
+class _OrdenTile extends StatelessWidget {
+  const _OrdenTile({required this.op, required this.onDiscard});
+
+  final PendingOp op;
+  final VoidCallback onDiscard;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = op.result;
+    final (icono, estado) = switch (op.status) {
+      PendingStatus.pending => (
+        const Icon(Icons.schedule),
+        'Pendiente de envío${op.attempts > 0 ? ' · intento ${op.attempts}' : ''}'
+            '${op.error == null ? '' : '\n${op.error}'}',
+      ),
+      PendingStatus.syncing => (
+        const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+        'Enviando…',
+      ),
+      PendingStatus.done => (
+        const Icon(Icons.check_circle, color: Colors.green),
+        'Enviada: ${r?['explanation'] ?? ''}\n${r?['method']} ${r?['path']} → ${r?['status']}',
+      ),
+      PendingStatus.failed => (
+        Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error),
+        'Rechazada: ${op.error ?? 'el servidor no la aceptó'}',
+      ),
+    };
+    return Card(
+      child: ListTile(
+        leading: icono,
+        title: Text(op.instruction, maxLines: 2, overflow: TextOverflow.ellipsis),
+        subtitle: Text('${op.diagramName}\n$estado'),
+        isThreeLine: true,
+        trailing: IconButton(
+          icon: const Icon(Icons.close),
+          tooltip: 'Quitar de la lista',
+          onPressed: op.status == PendingStatus.syncing ? null : onDiscard,
+        ),
+      ),
     );
   }
 }

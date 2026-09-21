@@ -26,3 +26,8 @@ linter:
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options
+
+# test_sqlite es otro paquete, con sus propias dependencias: se analiza y se prueba desde su carpeta.
+analyzer:
+  exclude:
+    - test_sqlite/**
