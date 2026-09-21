@@ -45,7 +45,8 @@ describe('guardas de ruta', () => {
     useAuthStore.getState().login('t', userWith('COMPANY_ADMIN'))
     const { router } = renderApp('/login')
     await waitFor(() => expect(router.state.location.pathname).toBe('/company/users'))
-    expect(screen.getByRole('heading', { name: 'Usuarios de la empresa' })).toBeInTheDocument()
+    // La pantalla se carga de forma diferida: que la ruta ya haya cambiado no significa que esté montada.
+    expect(await screen.findByRole('heading', { name: 'Usuarios de la empresa' })).toBeInTheDocument()
   })
 
   it('una dirección desconocida muestra la página de error', () => {
