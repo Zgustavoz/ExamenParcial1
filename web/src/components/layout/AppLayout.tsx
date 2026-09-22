@@ -15,6 +15,7 @@ import type { Role } from '@/lib/api/types'
 import { disablePush, listenForeground, refreshPushToken } from '@/lib/push/push'
 import { queryClient } from '@/lib/query-client'
 import { cn } from '@/lib/utils'
+import { useOfflineSync } from '@/lib/offline/use-offline-queue'
 import { useAuthStore } from '@/stores/auth-store'
 
 interface NavItem {
@@ -69,6 +70,9 @@ export function AppLayout() {
   const logout = useAuthStore((s) => s.logout)
   const navigate = useNavigate()
   const userId = user?.id
+
+  // Modo offline del Copilot: envía solas las instrucciones guardadas cuando vuelve la conexión.
+  useOfflineSync()
 
   // Push web (CU-19): renueva el token si el usuario ya dio permiso y muestra los avisos que llegan con la
   // pestaña en primer plano. Sin configuración de Firebase no hace nada.

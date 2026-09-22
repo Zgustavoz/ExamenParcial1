@@ -23,7 +23,7 @@ public record AppProperties(
 
     public record Ai(String url, String internalKey, int timeoutSeconds) {}
 
-    public record Fcm(String credentialsPath) {}
+    public record Fcm(String credentialsPath, String credentialsJson) {}
 
     public record S3(String bucket, String region, String endpoint) {}
 

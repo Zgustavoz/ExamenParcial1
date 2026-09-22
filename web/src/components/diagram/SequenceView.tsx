@@ -15,7 +15,10 @@ export function toMermaid(content: SequenceContent): string {
   const lines = ['sequenceDiagram', '  autonumber']
 
   for (const lifeline of content.lifelines) {
-    lines.push(`  participant ${alias.get(lifeline.id)} as ${safe(lifeline.name)}`)
+    // Una línea de vida sin clase es un actor externo (el usuario que inicia el flujo): se dibuja como un muñeco.
+    // Las que representan una clase del diagrama van como caja, sin estereotipo: solo se trabaja con modelos.
+    const kind = lifeline.classId ? 'participant' : 'actor'
+    lines.push(`  ${kind} ${alias.get(lifeline.id)} as ${safe(lifeline.name)}`)
   }
 
   const ordered = [...content.messages].sort((a, b) => a.order - b.order)

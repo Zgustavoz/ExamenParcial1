@@ -8,14 +8,19 @@ import 'api.dart';
 import 'offline/pending_op.dart';
 import 'offline/pending_store.dart';
 import 'offline/sync_service.dart';
+import 'push/push_messaging.dart';
+import 'push/push_registrar.dart';
 
 /// Pantalla única: se elige el diagrama, se dicta la orden y se ve lo que respondió el backend generado.
 ///
 /// Sin conexión, la orden se guarda en el dispositivo y se envía sola al volver (ver [SyncService]).
 class CommandPage extends StatefulWidget {
-  const CommandPage({super.key, required this.api, this.sync});
+  const CommandPage({super.key, required this.api, this.sync, this.push});
 
   final Api api;
+
+  /// Las notificaciones push. Si no se pasa, la pantalla no las usa (pruebas, o Firebase sin iniciar).
+  final PushMessaging? push;
 
   /// El servicio de órdenes guardadas. Si no se pasa, la pantalla crea uno en memoria (pruebas).
   final SyncService? sync;
@@ -32,6 +37,9 @@ class _CommandPageState extends State<CommandPage> {
 
   late final SyncService _sync;
   late final bool _ownsSync;
+  late final PushMessaging _push;
+  late final PushRegistrar _registrar;
+  StreamSubscription<PushMessage>? _pushSub;
 
   String? _token;
   List<({String id, String name})> _diagrams = const [];
@@ -51,16 +59,32 @@ class _CommandPageState extends State<CommandPage> {
     _sync = widget.sync ?? SyncService(api: widget.api, store: MemoryPendingStore(), retryEvery: null);
     _sync.onSynced = _avisarEnviadas;
     if (_ownsSync) unawaited(_sync.start());
+
+    _push = widget.push ?? const NoPushMessaging();
+    _registrar = PushRegistrar(api: widget.api, messaging: _push);
+    // Con la app abierta Android no muestra las notificaciones: se enseñan dentro de la pantalla.
+    _pushSub = _push.onForegroundMessage.listen(_mostrarNotificacion);
   }
 
   @override
   void dispose() {
     _sync.onSynced = null;
+    unawaited(_pushSub?.cancel());
+    _registrar.dispose();
     if (_ownsSync) _sync.dispose();
     _instruction.dispose();
     _username.dispose();
     _password.dispose();
     super.dispose();
+  }
+
+  void _mostrarNotificacion(PushMessage m) {
+    if (!mounted) return;
+    final texto = [m.title, m.body].where((t) => t.isNotEmpty).join(': ');
+    if (texto.isEmpty) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(texto), duration: const Duration(seconds: 6), showCloseIcon: true),
+    );
   }
 
   void _avisarEnviadas(int n) {
@@ -95,12 +119,14 @@ class _CommandPageState extends State<CommandPage> {
     });
     // Las órdenes que quedaron guardadas de otra vez se cargan y, si hay red, se envían.
     await _sync.signIn(Session(token: token, owner: '${Api.companySlug}/${_username.text.trim()}'));
+    unawaited(_registrar.start(token));
     if (_diagramId != null) await _loadEntities();
   });
 
   /// Con la sesión vencida las órdenes siguen guardadas: se vuelve a la pantalla de entrada para enviarlas.
   void _entrarDeNuevo() {
     _sync.signOut();
+    unawaited(_registrar.stop());
     setState(() {
       _token = null;
       _password.clear();
@@ -268,6 +294,10 @@ class _CommandPageState extends State<CommandPage> {
               _run(_loadEntities);
             },
     ),
+    ListenableBuilder(
+      listenable: _registrar,
+      builder: (context, _) => _EstadoNotificaciones(status: _registrar.status),
+    ),
     if (_entities.isNotEmpty) ...[
       const SizedBox(height: 8),
       Text(
@@ -318,6 +348,34 @@ class _CommandPageState extends State<CommandPage> {
         child: Text('Escuchando… hable ahora.'),
       ),
   ];
+}
+
+/// Una línea discreta que dice si este dispositivo recibirá notificaciones.
+class _EstadoNotificaciones extends StatelessWidget {
+  const _EstadoNotificaciones({required this.status});
+
+  final PushStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final (icono, texto) = switch (status) {
+      PushStatus.unknown => (null, null),
+      PushStatus.active => (Icons.notifications_active_outlined, 'Notificaciones activadas en este dispositivo.'),
+      PushStatus.denied => (Icons.notifications_off_outlined, 'Notificaciones desactivadas: no dio el permiso.'),
+      PushStatus.unavailable => (Icons.notifications_off_outlined, 'No se pudieron activar las notificaciones.'),
+    };
+    if (icono == null || texto == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        children: [
+          Icon(icono, size: 16),
+          const SizedBox(width: 6),
+          Expanded(child: Text(texto, style: Theme.of(context).textTheme.bodySmall)),
+        ],
+      ),
+    );
+  }
 }
 
 class _Aviso extends StatelessWidget {

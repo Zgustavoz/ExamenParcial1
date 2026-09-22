@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:diagramas_movil/api.dart';
 import 'package:diagramas_movil/offline/connectivity_monitor.dart';
+import 'package:diagramas_movil/push/push_messaging.dart';
 
 /// Api de prueba: ni red ni micrófono. Guarda lo que se le envió y permite provocar fallos.
 class FakeApi implements Api {
@@ -22,6 +23,18 @@ class FakeApi implements Api {
 
   @override
   Future<List<String>> entities(String token, String diagramId) async => ['Cliente'];
+
+  /// Los tokens de notificaciones que el «servidor» recibió: (jwt, token).
+  final List<(String, String)> tokensFcm = [];
+
+  /// Si es `true`, registrar el token falla como si no hubiera red.
+  bool fallaRegistroFcm = false;
+
+  @override
+  Future<void> registerFcmToken(String jwt, String fcmToken) async {
+    if (fallaRegistroFcm) throw sinRed();
+    tokensFcm.add((jwt, fcmToken));
+  }
 
   @override
   Future<CommandResult> command(String token, String diagramId, String instruction) async {
@@ -61,3 +74,38 @@ class FakeConnectivity implements ConnectivityMonitor {
 }
 
 ApiError sinRed() => ApiError('NETWORK_ERROR', 'No se pudo conectar con el servidor.');
+
+/// Mensajería push de prueba: sin Firebase ni dispositivo. Se controla a mano.
+class FakePush implements PushMessaging {
+  FakePush({this.permiso = true, this.token = 'fcm-token-1'});
+
+  bool permiso;
+  String? token;
+  bool falla = false;
+  int permisosPedidos = 0;
+
+  final _refresh = StreamController<String>.broadcast();
+  final _mensajes = StreamController<PushMessage>.broadcast();
+
+  @override
+  Future<bool> requestPermission() async {
+    permisosPedidos++;
+    if (falla) throw StateError('sin servicios de Google');
+    return permiso;
+  }
+
+  @override
+  Future<String?> getToken() async => token;
+
+  @override
+  Stream<String> get onTokenRefresh => _refresh.stream;
+
+  @override
+  Stream<PushMessage> get onForegroundMessage => _mensajes.stream;
+
+  /// Simula que Firebase cambia el token del dispositivo.
+  void cambiarToken(String nuevo) => _refresh.add(nuevo);
+
+  /// Simula una notificación recibida con la app abierta.
+  void llega(PushMessage m) => _mensajes.add(m);
+}

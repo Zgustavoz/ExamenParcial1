@@ -6,7 +6,7 @@
 # cambian las dependencias (rebuild). La aplicación sigue en http://localhost:8081.
 #
 # Cubre el ai-service y el cliente web. Para el backend en Java el camino rápido es ejecutarlo fuera de
-# Docker con `./mvnw spring-boot:run` (ver «Camino B» en docs/PUESTA_EN_MARCHA.md): ya trae DevTools, que
+# Docker con `./mvnw spring-boot:run` (ver «Camino rápido de desarrollo» en el README): ya trae DevTools, que
 # lo reinicia solo al recompilar.
 
 services:

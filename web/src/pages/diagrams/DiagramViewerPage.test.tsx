@@ -152,6 +152,25 @@ describe('traducción a Mermaid', () => {
     expect(mermaid.indexOf('crearPedido')).toBeLessThan(mermaid.indexOf('confirmacion'))
   })
 
+  it('una línea de vida sin clase (el actor que inicia el flujo) se dibuja como muñeco', () => {
+    const mermaid = toMermaid({
+      ...sequenceContent,
+      lifelines: [{ id: 'l0', name: 'Usuario', classId: null }, ...sequenceContent.lifelines],
+    })
+
+    expect(mermaid).toContain('actor L0 as Usuario')
+    // Las que sí son una clase del diagrama siguen siendo cajas, sin estereotipo.
+    expect(mermaid).toContain('participant L1 as Cliente')
+    expect(mermaid).toContain('participant L2 as Pedido')
+    expect(mermaid).not.toContain('<<')
+  })
+
+  it('una línea de vida sin «classId» tampoco es una clase: es un actor', () => {
+    const mermaid = toMermaid({ ...sequenceContent, lifelines: [{ id: 'l1', name: 'Cliente' }] })
+
+    expect(mermaid).toContain('actor L0 as Cliente')
+  })
+
   it('usa la flecha propia de cada tipo de mensaje', () => {
     const mermaid = toMermaid(sequenceContent)
 

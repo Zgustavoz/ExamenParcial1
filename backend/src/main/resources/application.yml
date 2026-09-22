@@ -21,12 +21,15 @@ spring:
       hibernate:
         jdbc.time_zone: UTC
         type.preferred_instant_jdbc_type: TIMESTAMP
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
   flyway:
     enabled: true
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
       repositories:
         enabled: false
   graphql:
@@ -40,6 +43,8 @@ spring:
 
 server:
   port: 8080
+  # Al parar el contenedor, las peticiones en curso (y las conexiones de colaboración) terminan antes de cortar.
+  shutdown: graceful
   error:
     include-message: never
     include-stacktrace: never
@@ -73,6 +78,8 @@ app:
     internal-key: ${AI_INTERNAL_KEY:}
     timeout-seconds: ${AI_TIMEOUT_SECONDS:30}
   fcm:
+    # Producción: toda la clave de Firebase en una sola línea (JSON o base64). Desarrollo: ruta a un archivo.
+    credentials-json: ${FCM_CREDENTIALS_JSON:}
     credentials-path: ${FCM_CREDENTIALS_PATH:}
   s3:
     bucket: ${S3_BUCKET:}

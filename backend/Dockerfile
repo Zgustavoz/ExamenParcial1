@@ -19,4 +19,8 @@ EXPOSE 8080
 HEALTHCHECK --interval=15s --timeout=3s --start-period=60s --retries=10 \
     CMD curl -fsS http://localhost:8080/actuator/health || exit 1
 
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-jar", "app.jar"]
+# JAVA_OPTS se puede cambiar desde el compose. La memoria se reparte según el límite del contenedor, y si la JVM
+# se queda sin ella se cae (en vez de quedarse colgada) para que Docker la reinicie.
+ENV JAVA_OPTS="-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8"
+# `exec`: la JVM pasa a ser el proceso principal y recibe SIGTERM, así que el cierre es limpio (graceful).
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]

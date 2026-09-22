@@ -1,12 +1,29 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Bot, Check, LoaderCircle, Mic, MicOff, Send, User } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import {
+  Bot,
+  Check,
+  CircleAlert,
+  CircleCheck,
+  Clock,
+  CloudOff,
+  LoaderCircle,
+  Mic,
+  MicOff,
+  RefreshCw,
+  Send,
+  User,
+  X,
+} from 'lucide-react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { toast } from 'sonner'
 import { FormError } from '@/components/FormError'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { confirmAiChanges, listAiChats, sendAiInstruction, type AiMessage, type InputType } from '@/lib/api/copilot'
+import { confirmAiChanges, listAiChats, type AiMessage, type InputType } from '@/lib/api/copilot'
 import { errorMessage } from '@/lib/api/errors'
+import type { PendingOp } from '@/lib/offline/pending-store'
+import type { OfflineQueue } from '@/lib/offline/queue'
+import { offlineQueue, useOfflineQueue } from '@/lib/offline/use-offline-queue'
 import { useSpeechRecognition } from '@/lib/use-speech-recognition'
 import { cn } from '@/lib/utils'
 
@@ -14,11 +31,44 @@ interface Props {
   diagramId: string
   /** Se llama cuando la IA ya aplicó cambios, para recargar el diagrama del editor. */
   onApplied: () => void
+  /** La cola de instrucciones pendientes. Por omisión, la de toda la aplicación; las pruebas pasan la suya. */
+  queue?: OfflineQueue
+}
+
+/** Cómo se explica en pantalla el estado de una instrucción guardada en el navegador. */
+function describe(op: PendingOp): { icon: typeof Clock; text: string } {
+  switch (op.status) {
+    case 'PENDING':
+      return {
+        icon: Clock,
+        text: `Pendiente de envío${op.attempts > 0 ? ` · intento ${op.attempts}` : ''}${op.error ? `. ${op.error}` : ''}`,
+      }
+    case 'SYNCING':
+      return { icon: LoaderCircle, text: 'Enviando…' }
+    case 'DONE':
+      return { icon: CircleCheck, text: `Enviada: ${op.result?.explanation ?? ''}` }
+    case 'FAILED':
+      return { icon: CircleAlert, text: `Rechazada: ${op.error ?? 'el asistente no la aceptó'}` }
+  }
 }
 
 /** CU-12 Generar o modificar el diagrama con IA, y CU-13 consultar el historial de la conversación. */
-export function CopilotPanel({ diagramId, onApplied }: Props) {
+export function CopilotPanel({ diagramId, onApplied, queue = offlineQueue }: Props) {
   const queryClient = useQueryClient()
+  const { ops, online, syncing } = useOfflineQueue(queue)
+  const [notice, setNotice] = useState<string | null>(null)
+  const mine = ops.filter((op) => op.diagramId === diagramId).reverse()
+  const pendingCount = mine.filter((op) => op.status === 'PENDING' || op.status === 'SYNCING').length
+
+  // Cuando se envían en segundo plano instrucciones de este diagrama, el asistente ya aplicó los cambios (D-07):
+  // el editor tiene que releerlo.
+  useEffect(
+    () =>
+      queue.onSynced((done) => {
+        if (done.some((op) => op.diagramId === diagramId)) onApplied()
+      }),
+    [queue, diagramId, onApplied],
+  )
   const [instruction, setInstruction] = useState('')
   const [inputType, setInputType] = useState<InputType>('TEXTO')
   const [lastExplanation, setLastExplanation] = useState<string | null>(null)
@@ -31,11 +81,27 @@ export function CopilotPanel({ diagramId, onApplied }: Props) {
   })
 
   const ask = useMutation({
-    mutationFn: () => sendAiInstruction({ diagramId, instruction: instruction.trim(), inputType }),
-    onSuccess: async (result) => {
+    // Por omisión TanStack Query pausa las mutaciones sin conexión y ni siquiera las ejecuta: la instrucción se
+    // quedaría «trabajando» para siempre. Aquí justo hace falta que se ejecute, para guardarla en el navegador.
+    networkMode: 'always',
+    mutationFn: () => queue.submit({ diagramId, instruction: instruction.trim(), inputType }),
+    onSuccess: async (outcome) => {
       setInstruction('')
       setInputType('TEXTO')
-      setLastExplanation(result.explanation)
+      if (outcome.kind === 'queued') {
+        // Quedó en el navegador y se enviará sola: por ahora no hay nada que confirmar ni que releer.
+        setLastExplanation(null)
+        setNotice(
+          !online
+            ? 'Sin conexión: la instrucción quedó guardada en este navegador y se enviará cuando vuelva la conexión.'
+            : outcome.op.error
+              ? `No se pudo enviar ahora. ${outcome.op.error} La instrucción quedó guardada y se reintentará.`
+              : 'La instrucción quedó en cola detrás de las que estaban pendientes y se envía en orden.',
+        )
+        return
+      }
+      setNotice(null)
+      setLastExplanation(outcome.result.explanation)
       await queryClient.invalidateQueries({ queryKey: ['aiChats', diagramId] })
       // El asistente aplica los cambios por su cuenta (D-07): el editor tiene que releer el diagrama.
       onApplied()
@@ -62,6 +128,14 @@ export function CopilotPanel({ diagramId, onApplied }: Props) {
 
   return (
     <div className="flex h-full flex-col gap-3">
+      {!online && (
+        <p className="flex items-start gap-2 rounded-lg bg-amber-50 p-2 text-xs text-amber-900" role="status">
+          <CloudOff className="mt-0.5 size-4 shrink-0" aria-hidden />
+          Sin conexión. Las instrucciones que escriba se guardarán en este navegador y se enviarán cuando vuelva la
+          conexión.
+        </p>
+      )}
+
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto">
         {chats.isPending && (
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -104,6 +178,59 @@ export function CopilotPanel({ diagramId, onApplied }: Props) {
 
         {/* Un fallo del asistente nunca toca el diagrama (CP-04). */}
         <FormError error={ask.error} />
+
+        {notice && (
+          <p className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-2 text-sm">
+            <Clock className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+            {notice}
+          </p>
+        )}
+
+        {mine.length > 0 && (
+          <section aria-label="Instrucciones guardadas en este navegador" className="space-y-2">
+            <header className="flex items-center justify-between gap-2">
+              <h3 className="text-sm font-medium">Instrucciones en este navegador</h3>
+              {pendingCount > 0 && (
+                <Button size="sm" variant="ghost" onClick={() => void queue.sync()} disabled={syncing}>
+                  <RefreshCw className={cn('size-4', syncing && 'animate-spin')} aria-hidden />
+                  {syncing ? 'Enviando…' : 'Sincronizar ahora'}
+                </Button>
+              )}
+            </header>
+            <ul className="space-y-2">
+              {mine.map((op) => {
+                const { icon: Icon, text } = describe(op)
+                return (
+                  <li key={op.id} className="flex items-start gap-2 rounded-lg border p-2 text-sm">
+                    <Icon
+                      className={cn(
+                        'mt-0.5 size-4 shrink-0',
+                        op.status === 'SYNCING' && 'animate-spin',
+                        op.status === 'DONE' && 'text-emerald-600',
+                        op.status === 'FAILED' && 'text-destructive',
+                      )}
+                      aria-hidden
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="whitespace-pre-wrap break-words">{op.instruction}</p>
+                      <p className="text-xs text-muted-foreground">{text}</p>
+                    </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="size-6"
+                      aria-label="Quitar de la lista"
+                      disabled={op.status === 'SYNCING'}
+                      onClick={() => void queue.discard(op)}
+                    >
+                      <X className="size-4" aria-hidden />
+                    </Button>
+                  </li>
+                )
+              })}
+            </ul>
+          </section>
+        )}
 
         {lastExplanation && (
           <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
